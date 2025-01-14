@@ -11,9 +11,12 @@ int setup_buff(char *, char *, int);
 
 // prototypes for functions to handle required functionality
 int count_words(char *, int, int);
+int reverse_string(char *buff, int len, int str_len);
+int print_words(char *buff, int len, int str_len);
 // add additional prototypes here
 
 int setup_buff(char *buff, char *user_str, int len)
+// TODO: #4: Implement the setup buff as per the directions
 {
     // Check if user string is bigger than buffer size
     if (len > BUFFER_SZ)
@@ -91,18 +94,101 @@ void usage(char *exename)
 
 int count_words(char *buff, int len, int str_len)
 {
-    // int wordCount = 0;
-    // for (int i = 0; i < str_len; i++) {
-    //     if (buff[i] == " ") {
-    //         wordCount += 1;
-    //     }
-    // }
+    int word_count = 0;
+    int currently_word = 0; // indicates if currently in a word or not
 
-    // printf("Word Count: %i", wordCount);
+    char *user_str_ptr = buff;
+
+    while (*user_str_ptr != '\0' && *user_str_ptr != '.')
+    {
+        char currentCharacter = *user_str_ptr;
+        if (currentCharacter == ' ' || currentCharacter == '\t')
+        {
+            currently_word = 0;
+        }
+        else if (!currently_word)
+        {
+            currently_word = 1;
+            word_count++;
+        }
+        user_str_ptr++;
+    }
+    return word_count;
+}
+
+int reverse_string(char *buff, int len, int str_len) 
+{
+    char *word_start = buff;
+    char *word_end = buff;
+
+    while (*word_end != '.' && *word_end != '\0')
+    {
+        word_end++;
+    }
+    word_end--;
+
+    printf("Reversed String: ");
+    while (word_end >= word_start) {
+        putchar(*word_end);
+        word_end--;
+    }
+    printf("\n");
+        return 0;
+}
+
+int print_words(char *buff, int len, int str_len)
+{
+    char *curr = buff;
+    int word_num = 1;
+    int char_count = 0;
+    int in_word = 0;
+    
+    printf("Word Print\n");
+    printf("----------\n");
+    
+    // Store start of current word
+    char *word_start = curr;
+    
+    while (*curr != '.' && *curr != '\0') {
+        if (*curr == ' ' || *curr == '\t') {
+            if (in_word) {
+                // Print the completed word
+                printf("%d. ", word_num);
+                char *temp = word_start;
+                while (temp < curr) {
+                    putchar(*temp);
+                    temp++;
+                }
+                printf(" (%d)\n", char_count);
+                
+                word_num++;
+                in_word = 0;
+                char_count = 0;
+            }
+        } else {
+            if (!in_word) {
+                word_start = curr;
+                in_word = 1;
+            }
+            char_count++;
+        }
+        curr++;
+    }
+    
+    // Print last word if exists
+    if (in_word) {
+        printf("%d. ", word_num);
+        char *temp = word_start;
+        while (temp < curr) {
+            putchar(*temp);
+            temp++;
+        }
+        printf(" (%d)\n", char_count);
+    }
+    
     return 0;
 }
 
-// ADD OTHER HELPER FUNCTIONS HERE FOR OTHER REQUIRED PROGRAM OPTIONS
 
 int main(int argc, char *argv[])
 {
@@ -152,7 +238,7 @@ int main(int argc, char *argv[])
         exit(99);
     }
 
-    user_str_len = setup_buff(buff, input_string, BUFFER_SZ); // see todos
+    user_str_len = setup_buff(buff, input_string, BUFFER_SZ);
     if (user_str_len < 0)
     {
         printf("Error setting up buffer, error = %d", user_str_len);
@@ -162,20 +248,29 @@ int main(int argc, char *argv[])
     switch (opt)
     {
     case 'c':
-        rc = count_words(buff, BUFFER_SZ, user_str_len); // you need to implement
-        if (rc < 0)
-        {
+        rc = count_words(buff, BUFFER_SZ, user_str_len);
+        if (rc < 0) {
             printf("Error counting words, rc = %d", rc);
             exit(2);
         }
         printf("Word Count: %d\n", rc);
         break;
-
-    // TODO:  #5 Implement the other cases for 'r' and 'w' by extending
-    //        the case statement options
+        
     case 'r':
-
-        // case 'w:':
+        rc = reverse_string(buff, BUFFER_SZ, user_str_len);
+        if (rc < 0) {
+            printf("Error reversing string, rc = %d", rc);
+            exit(2);
+        }
+        break;
+        
+    case 'w':
+        rc = print_words(buff, BUFFER_SZ, user_str_len);
+        if (rc < 0) {
+            printf("Error printing words, rc = %d", rc);
+            exit(2);
+        }
+        break;
 
     default:
         usage(argv[0]);
