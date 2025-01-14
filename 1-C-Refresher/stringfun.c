@@ -96,9 +96,7 @@ int count_words(char *buff, int len, int str_len)
 {
     int word_count = 0;
     int currently_word = 0; // indicates if currently in a word or not
-
     char *user_str_ptr = buff;
-
     while (*user_str_ptr != '\0' && *user_str_ptr != '.')
     {
         char currentCharacter = *user_str_ptr;
@@ -116,83 +114,89 @@ int count_words(char *buff, int len, int str_len)
     return word_count;
 }
 
-int reverse_string(char *buff, int len, int str_len) 
+int reverse_string(char *buff, int len, int str_len)
 {
     char *word_start = buff;
     char *word_end = buff;
-
     while (*word_end != '.' && *word_end != '\0')
     {
         word_end++;
     }
     word_end--;
-
+    // Print Reversed String
     printf("Reversed String: ");
-    while (word_end >= word_start) {
+    while (word_end >= word_start)
+    {
         putchar(*word_end);
         word_end--;
     }
     printf("\n");
-        return 0;
+    return 0;
 }
 
 int print_words(char *buff, int len, int str_len)
 {
     char *curr = buff;
-    int word_num = 1;
-    int char_count = 0;
-    int in_word = 0;
-    
+    int word_count = 1;
+    int character_count = 0;
+    int currently_word = 0;
+
     printf("Word Print\n");
     printf("----------\n");
-    
+
     // Store start of current word
     char *word_start = curr;
-    
-    while (*curr != '.' && *curr != '\0') {
-        if (*curr == ' ' || *curr == '\t') {
-            if (in_word) {
+
+    while (*curr != '.' && *curr != '\0')
+    {
+        if (*curr == ' ' || *curr == '\t')
+        {
+            if (currently_word)
+            {
                 // Print the completed word
-                printf("%d. ", word_num);
+                printf("%d. ", word_count);
                 char *temp = word_start;
-                while (temp < curr) {
+                while (temp < curr)
+                {
                     putchar(*temp);
                     temp++;
                 }
-                printf(" (%d)\n", char_count);
-                
-                word_num++;
-                in_word = 0;
-                char_count = 0;
+                printf(" (%d)\n", character_count);
+
+                word_count++;
+                currently_word = 0;
+                character_count = 0;
             }
-        } else {
-            if (!in_word) {
+        }
+        else
+        {
+            if (!currently_word)
+            {
                 word_start = curr;
-                in_word = 1;
+                currently_word = 1;
             }
-            char_count++;
+            character_count++;
         }
         curr++;
     }
-    
+
     // Print last word if exists
-    if (in_word) {
-        printf("%d. ", word_num);
+    if (currently_word)
+    {
+        printf("%d. ", word_count);
         char *temp = word_start;
-        while (temp < curr) {
+        while (temp < curr)
+        {
             putchar(*temp);
             temp++;
         }
-        printf(" (%d)\n", char_count);
+        printf(" (%d)\n", character_count);
     }
-    
     return 0;
 }
 
-
 int main(int argc, char *argv[])
 {
-
     char *buff;         // placehoder for the internal buffer
     char *input_string; // holds the string provided by the user on cmd line
     char opt;           // used to capture user option from cmd line
@@ -249,24 +253,27 @@ int main(int argc, char *argv[])
     {
     case 'c':
         rc = count_words(buff, BUFFER_SZ, user_str_len);
-        if (rc < 0) {
+        if (rc < 0)
+        {
             printf("Error counting words, rc = %d", rc);
             exit(2);
         }
         printf("Word Count: %d\n", rc);
         break;
-        
+
     case 'r':
         rc = reverse_string(buff, BUFFER_SZ, user_str_len);
-        if (rc < 0) {
+        if (rc < 0)
+        {
             printf("Error reversing string, rc = %d", rc);
             exit(2);
         }
         break;
-        
+
     case 'w':
         rc = print_words(buff, BUFFER_SZ, user_str_len);
-        if (rc < 0) {
+        if (rc < 0)
+        {
             printf("Error printing words, rc = %d", rc);
             exit(2);
         }
@@ -279,6 +286,7 @@ int main(int argc, char *argv[])
 
     // TODO:  #6 Dont forget to free your buffer before exiting
     print_buff(buff, BUFFER_SZ);
+    free(buff);
     exit(0);
 }
 
@@ -288,4 +296,5 @@ int main(int argc, char *argv[])
 //           is a good practice, after all we know from main() that
 //           the buff variable will have exactly 50 bytes?
 //
-//           PLACE YOUR ANSWER HERE
+//           It is a good idea to provide both the pointer and the length because it allows us to prevent out of range errors when accessing the pointer. 
+//           Additionally, these arguments allow us to do sanity checks before running the program, ensuring it handles any erorrs gracefully.
