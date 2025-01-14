@@ -223,7 +223,7 @@ int main(int argc, char *argv[])
     // WE NOW WILL HANDLE THE REQUIRED OPERATIONS
 
     // TODO:  #2 Document the purpose of the if statement below
-    //  This if statement checks if there is a string is provided in the command. If a string is not provided, then an error should/will be thrown.
+    //  This if statement checks if there is a string is provided with the command. If a string is not provided, then an error should/will be thrown.
     if (argc < 3)
     {
         usage(argv[0]);
