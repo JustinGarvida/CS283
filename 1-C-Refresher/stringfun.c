@@ -15,8 +15,63 @@ int count_words(char *, int, int);
 
 int setup_buff(char *buff, char *user_str, int len)
 {
-    // TODO: #4:  Implement the setup buff as per the directions
-    return 0; // for now just so the code compiles.
+    // Check if user string is bigger than buffer size
+    if (len > BUFFER_SZ)
+    {
+        return -1;
+    }
+
+    // Pointers to iterate through the strings
+    char *buffer_ptr = buff;
+    char *user_str_ptr = user_str;
+
+    int buffer_index = 0;
+    int consecutive_whitespace = 0;
+
+    // Iterate through the user string
+    while (*user_str_ptr != '\0' && buffer_index < BUFFER_SZ - 1)
+    {
+        char currentCharacter = *user_str_ptr;
+        // Handle any whitespaces encountered
+        if (currentCharacter == ' ' || currentCharacter == '\t')
+        {
+            if (consecutive_whitespace > 0)
+            {
+                user_str_ptr++;
+                continue;
+            }
+            else
+            {
+                *buffer_ptr = currentCharacter;
+                consecutive_whitespace++;
+                buffer_ptr++;
+                buffer_index++;
+            }
+        }
+        else
+        {
+            // Handle Non-white spaces. Reset consecutive whitespaces as well.
+            *buffer_ptr = currentCharacter;
+            buffer_ptr++;
+            buffer_index++;
+            consecutive_whitespace = 0;
+        }
+
+        user_str_ptr++;
+    }
+
+    // Fill remaining buffer space with periods
+    while (buffer_index < BUFFER_SZ - 1)
+    {
+        *buffer_ptr = '.';
+        buffer_ptr++;
+        buffer_index++;
+    }
+
+    // Null-terminate the buffer
+    *buffer_ptr = '\0';
+
+    return buffer_index;
 }
 
 void print_buff(char *buff, int len)
@@ -36,7 +91,14 @@ void usage(char *exename)
 
 int count_words(char *buff, int len, int str_len)
 {
-    // YOU MUST IMPLEMENT
+    // int wordCount = 0;
+    // for (int i = 0; i < str_len; i++) {
+    //     if (buff[i] == " ") {
+    //         wordCount += 1;
+    //     }
+    // }
+
+    // printf("Word Count: %i", wordCount);
     return 0;
 }
 
@@ -71,7 +133,7 @@ int main(int argc, char *argv[])
     // WE NOW WILL HANDLE THE REQUIRED OPERATIONS
 
     // TODO:  #2 Document the purpose of the if statement below
-    //  This if statement checks if there is a string provided in the command. If a string is not provided, then an error should/will be thrown.
+    //  This if statement checks if there is a string is provided in the command. If a string is not provided, then an error should/will be thrown.
     if (argc < 3)
     {
         usage(argv[0]);
@@ -84,8 +146,9 @@ int main(int argc, char *argv[])
     //           handle error if malloc fails by exiting with a
     //           return code of 99
     //  CODE GOES HERE FOR #3
-    int* buff = malloc(sizeof(BUFFER_SZ));
-    if (buff == NULL) {
+    buff = malloc(sizeof(BUFFER_SZ));
+    if (buff == NULL)
+    {
         exit(99);
     }
 
@@ -111,9 +174,9 @@ int main(int argc, char *argv[])
     // TODO:  #5 Implement the other cases for 'r' and 'w' by extending
     //        the case statement options
     case 'r':
-    
 
-    case 'w:'
+        // case 'w:':
+
     default:
         usage(argv[0]);
         exit(1);
