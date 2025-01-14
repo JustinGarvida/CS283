@@ -2,12 +2,12 @@
 triple:          'arm64-apple-darwin'
 binary-path:     stringfun
 relocations:
-  - { offsetInCU: 0x26, offset: 0x26, size: 0x8, addend: 0x0, symName: _setup_buff, symObjAddr: 0x0, symBinAddr: 0x100003520, symSize: 0x1B8 }
-  - { offsetInCU: 0x41, offset: 0x41, size: 0x8, addend: 0x0, symName: _setup_buff, symObjAddr: 0x0, symBinAddr: 0x100003520, symSize: 0x1B8 }
-  - { offsetInCU: 0xD9, offset: 0xD9, size: 0x8, addend: 0x0, symName: _print_buff, symObjAddr: 0x1B8, symBinAddr: 0x1000036D8, symSize: 0x78 }
-  - { offsetInCU: 0x127, offset: 0x127, size: 0x8, addend: 0x0, symName: _usage, symObjAddr: 0x230, symBinAddr: 0x100003750, symSize: 0x34 }
-  - { offsetInCU: 0x14B, offset: 0x14B, size: 0x8, addend: 0x0, symName: _count_words, symObjAddr: 0x264, symBinAddr: 0x100003784, symSize: 0xF0 }
-  - { offsetInCU: 0x1D5, offset: 0x1D5, size: 0x8, addend: 0x0, symName: _reverse_string, symObjAddr: 0x354, symBinAddr: 0x100003874, symSize: 0xEC }
-  - { offsetInCU: 0x235, offset: 0x235, size: 0x8, addend: 0x0, symName: _print_words, symObjAddr: 0x440, symBinAddr: 0x100003960, symSize: 0x258 }
-  - { offsetInCU: 0x2F7, offset: 0x2F7, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x698, symBinAddr: 0x100003BB8, symSize: 0x2B0 }
+  - { offsetInCU: 0x26, offset: 0x26, size: 0x8, addend: 0x0, symName: _setup_buff, symObjAddr: 0x0, symBinAddr: 0x10000350C, symSize: 0x1B8 }
+  - { offsetInCU: 0x41, offset: 0x41, size: 0x8, addend: 0x0, symName: _setup_buff, symObjAddr: 0x0, symBinAddr: 0x10000350C, symSize: 0x1B8 }
+  - { offsetInCU: 0xD9, offset: 0xD9, size: 0x8, addend: 0x0, symName: _print_buff, symObjAddr: 0x1B8, symBinAddr: 0x1000036C4, symSize: 0x78 }
+  - { offsetInCU: 0x127, offset: 0x127, size: 0x8, addend: 0x0, symName: _usage, symObjAddr: 0x230, symBinAddr: 0x10000373C, symSize: 0x34 }
+  - { offsetInCU: 0x14B, offset: 0x14B, size: 0x8, addend: 0x0, symName: _count_words, symObjAddr: 0x264, symBinAddr: 0x100003770, symSize: 0xF0 }
+  - { offsetInCU: 0x1D5, offset: 0x1D5, size: 0x8, addend: 0x0, symName: _reverse_string, symObjAddr: 0x354, symBinAddr: 0x100003860, symSize: 0xEC }
+  - { offsetInCU: 0x235, offset: 0x235, size: 0x8, addend: 0x0, symName: _print_words, symObjAddr: 0x440, symBinAddr: 0x10000394C, symSize: 0x258 }
+  - { offsetInCU: 0x2F7, offset: 0x2F7, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x698, symBinAddr: 0x100003BA4, symSize: 0x2B8 }
 ...
