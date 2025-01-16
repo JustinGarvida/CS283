@@ -15,6 +15,9 @@ int reverse_string(char *buff, int len, int str_len);
 int print_words(char *buff, int len, int str_len);
 // add additional prototypes here
 
+// The setup_buff function modifies the user input string and places the modified string into the buffer.
+// Essentially, this function will take the string, strip any consecutive whitespaces/tabs from the given string, and then place into the buffer.
+// The setup_buff utilizes pointer management without array notation to iterate through the string and complete the necessary actions.
 int setup_buff(char *buff, char *user_str, int len)
 // TODO: #4: Implement the setup buff as per the directions
 {
@@ -114,6 +117,10 @@ int count_words(char *buff, int len, int str_len)
     return word_count;
 }
 
+// ADD OTHER HELPER FUNCTIONS HERE FOR OTHER REQUIRED PROGRAM OPTIONS
+
+// The revere string function is a helper function used for the "r" command.
+// This function uses two pointers, word_start and word_end, to print the string out in reverse order.
 int reverse_string(char *buff, int len, int str_len)
 {
     char *word_start = buff;
@@ -123,8 +130,8 @@ int reverse_string(char *buff, int len, int str_len)
         word_end++;
     }
     word_end--;
-    // Print Reversed String
     printf("Reversed String: ");
+    // Print each character in reverse until pointers align
     while (word_end >= word_start)
     {
         putchar(*word_end);
@@ -134,6 +141,8 @@ int reverse_string(char *buff, int len, int str_len)
     return 0;
 }
 
+// The print words function is a helper function used for the "w" command
+// This function 
 int print_words(char *buff, int len, int str_len)
 {
     char *curr = buff;
@@ -296,5 +305,5 @@ int main(int argc, char *argv[])
 //           is a good practice, after all we know from main() that
 //           the buff variable will have exactly 50 bytes?
 //
-//           It is a good idea to provide both the pointer and the length because it allows us to prevent out of range errors when accessing the pointer. 
+//           It is a good idea to provide both the pointer and the length because it allows us to prevent out of range errors when accessing the pointer.
 //           Additionally, these arguments allow us to do sanity checks before running the program, ensuring it handles any erorrs gracefully.
