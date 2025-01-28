@@ -278,9 +278,40 @@ int count_db_records(int fd)
  */
 int print_db(int fd)
 {
-    // TODO
-    printf(M_NOT_IMPL);
-    return NOT_IMPLEMENTED_YET;
+    if (lseek(fd, 0, SEEK_SET) == -1)
+    {
+        printf(M_ERR_DB_READ);
+        return ERR_DB_FILE;
+    }
+    student_t student;
+    ssize_t bytesReturned;
+    int record_found = 0;
+
+    while ((bytesReturned = read(fd, &student, sizeof(student_t))) > 0)
+    {
+        if (memcmp(&student, "\0", sizeof(student_t)) != 0)
+        {
+            if (!record_found)
+            {
+                printf(STUDENT_PRINT_HDR_STRING, "ID", "FIRST NAME", "LAST NAME", "GPA");
+                record_found = 1;
+            }
+            float calculated_gpa = student.gpa / 100.0;
+            printf(STUDENT_PRINT_FMT_STRING, student.id, student.fname, student.lname, calculated_gpa);
+        }
+    }
+    if (bytesReturned == -1)
+    {
+        printf(M_ERR_DB_READ);
+        return ERR_DB_FILE;
+    }
+
+    if (!record_found)
+    {
+        printf(M_DB_EMPTY);
+    }
+
+    return NO_ERROR;
 }
 
 /*
