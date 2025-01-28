@@ -237,25 +237,22 @@ int count_db_records(int fd)
         printf(M_ERR_DB_READ);
         return ERR_DB_FILE;
     }
-
     int record_count = 0;
     student_t temp;
-
     ssize_t bytesReturned;
     while ((bytesReturned = read(fd, &temp, sizeof(student_t))) > 0)
     {
-        if (memcmp(&temp, "\0", sizeof(student_t)) != 0)
+        if (temp.id == 0)
         {
-            record_count++;
+            continue;
         }
+        record_count++;
     }
-
     if (bytesReturned == -1)
     {
         printf(M_ERR_DB_READ);
         return ERR_DB_FILE;
     }
-
     if (record_count == 0)
     {
         printf(M_DB_EMPTY);
@@ -264,7 +261,6 @@ int count_db_records(int fd)
     {
         printf(M_DB_RECORD_CNT, record_count);
     }
-
     return record_count;
 }
 
