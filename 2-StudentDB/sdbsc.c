@@ -300,8 +300,15 @@ int print_db(int fd)
  */
 void print_student(student_t *s)
 {
-    // TODO
-    printf(M_NOT_IMPL);
+    if (s == NULL || s->id == 0)
+    {
+        printf(M_ERR_STD_PRINT);
+        return;
+    }
+
+    printf(STUDENT_PRINT_HDR_STRING, "ID", "FIRST NAME", "LAST NAME", "GPA");
+    float calculated_gpa = s->gpa / 100.0;
+    printf(STUDENT_PRINT_FMT_STRING, s->id, s->fname, s->lname, calculated_gpa);
 }
 
 /*
