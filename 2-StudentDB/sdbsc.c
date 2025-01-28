@@ -152,7 +152,7 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa)
     // If no record exists, seek back to the offset to write the new student record
     if (lseek(fd, offset, SEEK_SET) == -1)
     {
-        printf("Error: Unable to seek the file (M_ERR_DB_READ).\n");
+        printf(M_ERR_DB_READ);
         return ERR_DB_FILE;
     }
 
