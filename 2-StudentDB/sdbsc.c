@@ -117,52 +117,55 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa)
     strcpy(new_student.lname, lname);
     new_student.gpa = gpa;
 
-    // Check database and add new stuent
+    // Calculate the file offset for the student ID
     int offset = id * sizeof(student_t);
 
+    // Move the file pointer to the calculated offset
     if (lseek(fd, offset, SEEK_SET) == -1)
     {
         printf(M_ERR_DB_READ);
-        return ERR_DB_FILE;
+        return ERR_DB_FILE; // File seek error
     }
 
+    // Temporary buffer to read the existing record
     char temp[sizeof(student_t)];
-    // Read and check if record exists
+
+    // Read the record at the calculated offset
     ssize_t bytesReturned = read(fd, temp, sizeof(student_t));
 
+    // Check for errors or if the record exists
     if (bytesReturned == -1)
     {
+        // File read error
+        printf(M_ERR_DB_READ);
         return ERR_DB_FILE;
     }
-    else if (bytesReturned == 0)
+    else if (bytesReturned > 0)
     {
-        return SRCH_NOT_FOUND;
-    }
-    else
-    {
-        // Check if student exists
+        // Check if the record contains non-zero bytes
         if (memcmp(temp, "\0", sizeof(student_t)) != 0)
         {
-            // Record exists at this location
+            // Record already exists
             printf(M_ERR_DB_ADD_DUP);
             return ERR_DB_OP;
         }
     }
 
-    // If no record exists, seek back to the offset to write the new student record
+    // Seek back to the offset to write the new record
     if (lseek(fd, offset, SEEK_SET) == -1)
     {
         printf(M_ERR_DB_READ);
         return ERR_DB_FILE;
     }
 
-    // Write the new student record to the file
+    // Write the new student record
     if (write(fd, &new_student, sizeof(student_t)) == -1)
     {
-        printf("Error: Unable to write to the file (M_ERR_DB_WRITE).\n");
+        printf(M_ERR_DB_WRITE);
         return ERR_DB_FILE;
     }
 
+    // Success
     printf(M_STD_ADDED);
     return NO_ERROR;
 }
