@@ -124,31 +124,28 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa)
         return ERR_DB_FILE;
     }
 
-    char temp[sizeof(student_t)];
-
-    ssize_t bytesReturned = read(fd, temp, sizeof(student_t));
+    student_t temp;
+    ssize_t bytesReturned = read(fd, &temp, sizeof(student_t));
 
     if (bytesReturned == -1)
     {
         return ERR_DB_FILE;
     }
-    else if (bytesReturned > 0)
+    else if (bytesReturned > 0 && temp.id != 0)
     {
-        if (memcmp(temp, "\0", sizeof(student_t)) != 0)
-        {
-            return ERR_DB_OP;
-        }
+        return ERR_DB_OP;
     }
 
     if (lseek(fd, offset, SEEK_SET) == -1)
     {
-        return ERR_DB_FILE; 
+        return ERR_DB_FILE;
     }
 
     if (write(fd, &new_student, sizeof(student_t)) == -1)
     {
         return ERR_DB_FILE;
     }
+
     return NO_ERROR;
 }
 
