@@ -110,6 +110,9 @@ int get_student(int fd, int id, student_t *s)
  */
 int add_student(int fd, int id, char *fname, char *lname, int gpa)
 {
+    // Debug: Log the input parameters
+    printf("Debug: Starting add_student with ID = %d, First Name = %s, Last Name = %s, GPA = %d\n", id, fname, lname, gpa);
+
     // Create New Student Struct
     student_t new_student;
     new_student.id = id;
@@ -117,27 +120,33 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa)
     strcpy(new_student.lname, lname);
     new_student.gpa = gpa;
 
+    // Debug: Verify the new_student struct is populated correctly
+    printf("Debug: Created new student struct: ID = %d, First Name = %s, Last Name = %s, GPA = %d\n",
+           new_student.id, new_student.fname, new_student.lname, new_student.gpa);
+
     // Calculate the file offset for the student ID
     int offset = id * sizeof(student_t);
+    printf("Debug: Calculated file offset = %d\n", offset);
 
     // Move the file pointer to the calculated offset
     if (lseek(fd, offset, SEEK_SET) == -1)
     {
-        printf(M_ERR_DB_READ);
+        printf("Error: Unable to seek to offset %d (M_ERR_DB_READ)\n", offset);
         return ERR_DB_FILE; // File seek error
     }
+    printf("Debug: Successfully moved file pointer to offset %d\n", offset);
 
     // Temporary buffer to read the existing record
     char temp[sizeof(student_t)];
 
     // Read the record at the calculated offset
     ssize_t bytesReturned = read(fd, temp, sizeof(student_t));
+    printf("Debug: Read %zd bytes from file at offset %d\n", bytesReturned, offset);
 
     // Check for errors or if the record exists
     if (bytesReturned == -1)
     {
-        // File read error
-        printf(M_ERR_DB_READ);
+        printf("Error: Unable to read from file (M_ERR_DB_READ)\n");
         return ERR_DB_FILE;
     }
     else if (bytesReturned > 0)
@@ -145,8 +154,7 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa)
         // Check if the record contains non-zero bytes
         if (memcmp(temp, "\0", sizeof(student_t)) != 0)
         {
-            // Record already exists
-            printf(M_ERR_DB_ADD_DUP);
+            printf("Error: Record already exists for ID = %d (M_ERR_DB_ADD_DUP)\n", id);
             return ERR_DB_OP;
         }
     }
@@ -154,19 +162,39 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa)
     // Seek back to the offset to write the new record
     if (lseek(fd, offset, SEEK_SET) == -1)
     {
-        printf(M_ERR_DB_READ);
+        printf("Error: Unable to seek to offset %d before writing (M_ERR_DB_READ)\n", offset);
         return ERR_DB_FILE;
     }
+    printf("Debug: Successfully moved file pointer to offset %d for writing\n", offset);
 
     // Write the new student record
     if (write(fd, &new_student, sizeof(student_t)) == -1)
     {
-        printf(M_ERR_DB_WRITE);
+        printf("Error: Unable to write to file at offset %d (M_ERR_DB_WRITE)\n", offset);
+        return ERR_DB_FILE;
+    }
+    printf("Debug: Successfully wrote new student record to offset %d\n", offset);
+
+    // Verify the written data by reading it back
+    student_t debug_student;
+    if (lseek(fd, offset, SEEK_SET) == -1)
+    {
+        printf("Error: Unable to seek to offset %d after writing (M_ERR_DB_READ)\n", offset);
         return ERR_DB_FILE;
     }
 
+    if (read(fd, &debug_student, sizeof(student_t)) == -1)
+    {
+        printf("Error: Unable to read back written data (M_ERR_DB_READ)\n");
+        return ERR_DB_FILE;
+    }
+
+    // Debug: Verify the written record matches the expected data
+    printf("Debug: Verified written student record: ID = %d, First Name = %s, Last Name = %s, GPA = %d\n",
+           debug_student.id, debug_student.fname, debug_student.lname, debug_student.gpa);
+
     // Success
-    printf(M_STD_ADDED);
+    printf("Student %d added to database (M_STD_ADDED)\n", id);
     return NO_ERROR;
 }
 
