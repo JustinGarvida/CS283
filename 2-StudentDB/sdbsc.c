@@ -176,9 +176,37 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa)
  */
 int del_student(int fd, int id)
 {
-    // TODO
-    printf(M_NOT_IMPL);
-    return NOT_IMPLEMENTED_YET;
+    student_t student;
+    int result = get_student(fd, id, &student);
+
+    if (result == ERR_DB_FILE)
+    {
+        printf(M_ERR_DB_READ);
+        return ERR_DB_FILE; 
+    }
+    else if (result == SRCH_NOT_FOUND)
+    {
+        printf(M_STD_NOT_FND_MSG, id); 
+        return ERR_DB_OP; 
+    }
+
+    int offset = id * sizeof(student_t);
+
+    if (lseek(fd, offset, SEEK_SET) == -1)
+    {
+        printf(M_ERR_DB_READ);
+        return ERR_DB_FILE;
+    }
+    student_t empty_student = {0};
+
+    if (write(fd, &empty_student, sizeof(student_t)) == -1)
+    {
+        printf(M_ERR_DB_WRITE);
+        return ERR_DB_FILE; 
+    }
+
+    printf(M_STD_DEL_MSG, id);
+    return NO_ERROR;
 }
 
 /*
@@ -283,6 +311,7 @@ int print_db(int fd)
         printf(M_ERR_DB_READ);
         return ERR_DB_FILE;
     }
+
     student_t student;
     ssize_t bytesReturned;
     int record_found = 0;
