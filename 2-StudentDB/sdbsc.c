@@ -140,6 +140,7 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa)
     }
     else
     {
+        // Check if student exists
         if (memcmp(temp, "\0", sizeof(student_t)) != 0)
         {
             // Record exists at this location
@@ -148,9 +149,22 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa)
         }
     }
 
-    // TODO
-    printf(M_NOT_IMPL);
-    return NOT_IMPLEMENTED_YET;
+    // If no record exists, seek back to the offset to write the new student record
+    if (lseek(fd, offset, SEEK_SET) == -1)
+    {
+        printf("Error: Unable to seek the file (M_ERR_DB_READ).\n");
+        return ERR_DB_FILE;
+    }
+
+    // Write the new student record to the file
+    if (write(fd, &new_student, sizeof(student_t)) == -1)
+    {
+        printf("Error: Unable to write to the file (M_ERR_DB_WRITE).\n");
+        return ERR_DB_FILE;
+    }
+
+    printf(M_STD_ADDED);
+    return NO_ERROR;
 }
 
 /*
