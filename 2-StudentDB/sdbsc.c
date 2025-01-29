@@ -79,10 +79,10 @@ int get_student(int fd, int id, student_t *s)
         return SRCH_NOT_FOUND;
     }
 
-    //Check if record is empty
+    // Check if record is empty
     if (memcmp(s, &EMPTY_STUDENT_RECORD, STUDENT_RECORD_SIZE) == 0)
     {
-        return SRCH_NOT_FOUND; 
+        return SRCH_NOT_FOUND;
     }
     return NO_ERROR;
 }
@@ -158,7 +158,7 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa)
         return ERR_DB_FILE;
     }
 
-    printf(M_STD_ADDED,id);
+    printf(M_STD_ADDED, id);
     return NO_ERROR;
 }
 
@@ -193,12 +193,12 @@ int del_student(int fd, int id)
     if (result == ERR_DB_FILE)
     {
         printf(M_ERR_DB_READ);
-        return ERR_DB_FILE; 
+        return ERR_DB_FILE;
     }
     else if (result == SRCH_NOT_FOUND)
     {
-        printf(M_STD_NOT_FND_MSG, id); 
-        return ERR_DB_OP; 
+        printf(M_STD_NOT_FND_MSG, id);
+        return ERR_DB_OP;
     }
 
     // Calculate offset to add blank record
@@ -216,7 +216,7 @@ int del_student(int fd, int id)
     if (write(fd, &empty_student, STUDENT_RECORD_SIZE) == -1)
     {
         printf(M_ERR_DB_WRITE);
-        return ERR_DB_FILE; 
+        return ERR_DB_FILE;
     }
 
     // Success message
@@ -397,8 +397,9 @@ void print_student(student_t *s)
         printf(M_ERR_STD_PRINT);
         return;
     }
-    float calculated_gpa = s->gpa / 100.0;
-    printf(STUDENT_PRINT_FMT_STRING, s->id, s->fname, s->lname, calculated_gpa);
+    printf(STUDENT_PRINT_HDR_STRING, "ID", "FIRST NAME", "LAST_NAME", "GPA");
+    float calculated_gpa_from_s = s->gpa / 100.0;
+    printf(STUDENT_PRINT_FMT_STRING, s->id, s->fname, s->lname, calculated_gpa_from_s);
 }
 
 /*
