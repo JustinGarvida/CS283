@@ -136,7 +136,7 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa)
     {
         if (temp.id != 0 || memcmp(&temp, "\0", STUDENT_RECORD_SIZE) != 0)
         {
-            printf(M_ERR_DB_ADD_DUP);
+            printf(M_ERR_DB_ADD_DUP, id);
             return ERR_DB_OP;
         }
     }
@@ -243,8 +243,6 @@ int del_student(int fd, int id)
  *            M_ERR_DB_WRITE   error writing to db file (adding student)
  *
  */
-static const student_t EMPTY_STUDENT_RECORD = {0};
-
 int count_db_records(int fd)
 {
     if (lseek(fd, 0, SEEK_SET) == -1)
