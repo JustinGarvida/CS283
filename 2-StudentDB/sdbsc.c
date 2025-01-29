@@ -341,7 +341,7 @@ int print_db(int fd)
 
         if (!record_found)
         {
-            printf(STUDENT_PRINT_HDR_STRING, "ID", "FIRST NAME", "LAST NAME", "GPA");
+            printf(STUDENT_PRINT_HDR_STRING, "ID", "FIRST NAME", "LAST_NAME", "GPA");
             record_found = 1;
         }
 
@@ -398,8 +398,8 @@ void print_student(student_t *s)
         return;
     }
     printf(STUDENT_PRINT_HDR_STRING, "ID", "FIRST NAME", "LAST_NAME", "GPA");
-    float calculated_gpa_from_s = s->gpa / 100.0;
-    printf(STUDENT_PRINT_FMT_STRING, s->id, s->fname, s->lname, calculated_gpa_from_s);
+    float calculated_gpa = s->gpa / 100.0;
+    printf(STUDENT_PRINT_FMT_STRING, s->id, s->fname, s->lname, calculated_gpa);
 }
 
 /*
