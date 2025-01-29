@@ -39,7 +39,7 @@ Please answer the following questions and submit in your repo for the second ass
     ```
     Can you think of any reason why the above implementation would be a **very bad idea** using the C programming language?  Specifically, address why the above code introduces a subtle bug that could be hard to identify at runtime? 
 
-    > **ANSWER:** _start here_
+    > **ANSWER:** The implementation above would be a very bad idea in C programming specifically is the fact that it would return a dangling pointer. Because local variables within the function are wiped after the function call, they don't have a memory space after the call. The dangling pointer could be overidden later on in the call
 
 3. Another way the `get_student(...)` function could be implemented is as follows:
 
