@@ -62,14 +62,14 @@ int open_db(char *dbFile, bool should_truncate)
  */
 int get_student(int fd, int id, student_t *s)
 {
-    int offset = id * sizeof(student_t);
+    int offset = id * STUDENT_RECORD_SIZE;
 
     if (lseek(fd, offset, SEEK_SET) == -1)
     {
         return ERR_DB_FILE;
     }
     // Read file and store student data into student pointer
-    ssize_t bytesReturned = read(fd, s, sizeof(student_t));
+    ssize_t bytesReturned = read(fd, s, STUDENT_RECORD_SIZE);
 
     // Check for any errors
     if (bytesReturned == -1)
@@ -80,7 +80,6 @@ int get_student(int fd, int id, student_t *s)
     {
         return SRCH_NOT_FOUND;
     }
-
     return NO_ERROR;
 }
 /*
@@ -110,13 +109,14 @@ int get_student(int fd, int id, student_t *s)
  */
 int add_student(int fd, int id, char *fname, char *lname, int gpa)
 {
+    // Create student struct
     student_t new_student;
     new_student.id = id;
     strcpy(new_student.fname, fname);
     strcpy(new_student.lname, lname);
     new_student.gpa = gpa;
 
-    int offset = id * sizeof(student_t);
+    int offset = id * STUDENT_RECORD_SIZE;
 
     if (lseek(fd, offset, SEEK_SET) == -1)
     {
@@ -125,27 +125,35 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa)
     }
 
     student_t temp;
-    ssize_t bytesReturned = read(fd, &temp, sizeof(student_t));
+    ssize_t bytesReturned = read(fd, &temp, STUDENT_RECORD_SIZE);
 
     if (bytesReturned == -1)
     {
+        printf(M_ERR_DB_READ);
         return ERR_DB_FILE;
     }
-    else if (bytesReturned > 0 && temp.id != 0)
+    else if (bytesReturned > 0)
     {
-        return ERR_DB_OP;
+        if (temp.id != 0 || memcmp(&temp, "\0", STUDENT_RECORD_SIZE) != 0)
+        {
+            printf(M_ERR_DB_ADD_DUP);
+            return ERR_DB_OP;
+        }
     }
 
     if (lseek(fd, offset, SEEK_SET) == -1)
     {
+        printf(M_ERR_DB_READ);
         return ERR_DB_FILE;
     }
 
-    if (write(fd, &new_student, sizeof(student_t)) == -1)
+    if (write(fd, &new_student, STUDENT_RECORD_SIZE) == -1)
     {
+        printf(M_ERR_DB_READ);
         return ERR_DB_FILE;
     }
 
+    printf(M_STD_ADDED);
     return NO_ERROR;
 }
 
@@ -173,9 +181,10 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa)
  */
 int del_student(int fd, int id)
 {
-    student_t student;
-    int result = get_student(fd, id, &student);
+    student_t delete_student;
+    int result = get_student(fd, id, &delete_student);
 
+    // Handle any get_student errors
     if (result == ERR_DB_FILE)
     {
         printf(M_ERR_DB_READ);
@@ -187,21 +196,25 @@ int del_student(int fd, int id)
         return ERR_DB_OP; 
     }
 
-    int offset = id * sizeof(student_t);
+    // Calculate offset to add blank record
+    int offset = id * STUDENT_RECORD_SIZE;
 
     if (lseek(fd, offset, SEEK_SET) == -1)
     {
         printf(M_ERR_DB_READ);
         return ERR_DB_FILE;
     }
-    student_t empty_student = {0};
 
-    if (write(fd, &empty_student, sizeof(student_t)) == -1)
+    student_t empty_student = EMPTY_STUDENT_RECORD;
+
+    // Write an empty student record to original record and check for errors
+    if (write(fd, &empty_student, STUDENT_RECORD_SIZE) == -1)
     {
         printf(M_ERR_DB_WRITE);
         return ERR_DB_FILE; 
     }
 
+    // Success message
     printf(M_STD_DEL_MSG, id);
     return NO_ERROR;
 }
@@ -230,6 +243,8 @@ int del_student(int fd, int id)
  *            M_ERR_DB_WRITE   error writing to db file (adding student)
  *
  */
+static const student_t EMPTY_STUDENT_RECORD = {0};
+
 int count_db_records(int fd)
 {
     if (lseek(fd, 0, SEEK_SET) == -1)
@@ -237,17 +252,20 @@ int count_db_records(int fd)
         printf(M_ERR_DB_READ);
         return ERR_DB_FILE;
     }
+
     int record_count = 0;
     student_t temp;
     ssize_t bytesReturned;
-    while ((bytesReturned = read(fd, &temp, sizeof(student_t))) > 0)
+
+    while ((bytesReturned = read(fd, &temp, STUDENT_RECORD_SIZE)) > 0)
     {
-        if (temp.id == 0 && memcmp(&temp, "\0", sizeof(student_t)) == 0)
+        if (memcmp(&temp, &EMPTY_STUDENT_RECORD, STUDENT_RECORD_SIZE) == 0)
         {
             continue;
-        }s
+        }
         record_count++;
     }
+
     if (bytesReturned == -1)
     {
         printf(M_ERR_DB_READ);
@@ -262,6 +280,7 @@ int count_db_records(int fd)
     {
         printf(M_DB_RECORD_CNT, record_count);
     }
+
     return record_count;
 }
 
@@ -375,8 +394,6 @@ void print_student(student_t *s)
         printf(M_ERR_STD_PRINT);
         return;
     }
-
-    printf(STUDENT_PRINT_HDR_STRING, "ID", "FIRST NAME", "LAST NAME", "GPA");
     float calculated_gpa = s->gpa / 100.0;
     printf(STUDENT_PRINT_FMT_STRING, s->id, s->fname, s->lname, calculated_gpa);
 }
