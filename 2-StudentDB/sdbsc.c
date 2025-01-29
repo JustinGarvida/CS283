@@ -64,14 +64,12 @@ int get_student(int fd, int id, student_t *s)
 {
     int offset = id * STUDENT_RECORD_SIZE;
 
+    // Seek to correct offset
     if (lseek(fd, offset, SEEK_SET) == -1)
     {
         return ERR_DB_FILE;
     }
-    // Read file and store student data into student pointer
     ssize_t bytesReturned = read(fd, s, STUDENT_RECORD_SIZE);
-
-    // Check for any errors
     if (bytesReturned == -1)
     {
         return ERR_DB_FILE;
@@ -80,8 +78,15 @@ int get_student(int fd, int id, student_t *s)
     {
         return SRCH_NOT_FOUND;
     }
+
+    //Check if record is empty
+    if (memcmp(s, &EMPTY_STUDENT_RECORD, STUDENT_RECORD_SIZE) == 0)
+    {
+        return SRCH_NOT_FOUND; 
+    }
     return NO_ERROR;
 }
+
 /*
  *  add_student
  *      fd:     linux file descriptor
