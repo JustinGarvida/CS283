@@ -102,11 +102,11 @@ Please answer the following questions and submit in your repo for the second ass
 
     - Please explain why the file size reported by the `ls` command was 128 bytes after adding student with ID=1, 256 after adding student with ID=3, and 4160 after adding the student with ID=64? 
 
-        > **ANSWER:** _start here_
+        > **ANSWER:** The file size reported by `ls` increases based on the logical layout of records in the file. Each student record occupies 64 bytes (`sizeof(student_t)`), and the file size is determined by the highest offset used. After adding student with ID=1, the file had room for two records (ID 0 and ID 1), totaling 128 bytes (`64 × 2`). After adding student ID=3, the file expanded to 256 bytes (`64 × 4`) to accommodate the highest index (ID=3). Adding student ID=64 expanded the file size to 4160 bytes (`64 × 65`), filling gaps for all student IDs from 0 to 64.
 
     -   Why did the total storage used on the disk remain unchanged when we added the student with ID=1, ID=3, and ID=63, but increased from 4K to 8K when we added the student with ID=64? 
 
-        > **ANSWER:** _start here_
+        > **ANSWER:** Linux filesystems allocate disk space in fixed-sized blocks (typically 4KB). Although the logical file size increased with each new student record, actual storage usage (`du`) did not change because all data fit within the initial 4KB block. When student ID=64 was added, the logical size exceeded 4KB, causing the filesystem to allocate a second block, increasing storage usage from 4K to 8K.
 
     - Now lets add one more student with a large student ID number  and see what happens:
 
@@ -119,4 +119,4 @@ Please answer the following questions and submit in your repo for the second ass
         ```
         We see from above adding a student with a very large student ID (ID=99999) increased the file size to 6400000 as shown by `ls` but the raw storage only increased to 12K as reported by `du`.  Can provide some insight into why this happened?
 
-        > **ANSWER:**  The difference between the file size reported by ls and the actual disk space used (du) is due to sparse files in Linux, which allow files to have unallocated empty regions without using physical storage. When students with IDs 1 and 3 were added, the file grew logically (ls showed 128 and 256 bytes), but the actual storage (du) remained at 4K because it fit within a single disk block. Adding student ID=64 increased the logical size to 4160 bytes, exceeding one block, causing du to increase to 8K as a second block was allocated. When ID=99999 was added, ls showed a massive jump to 6.4MB because the file expanded logically to accommodate the high ID, but du only increased slightly to 12K since most of the file consists of unallocated gaps, demonstrating how Linux efficiently manages disk space with sparse files.
+        > **ANSWER:**  When the student with ID=99999 was added, the file size reported by `ls` jumped to 6.4MB (`64 × 100000`), as the highest offset used in the file was for ID=99999. However, Linux uses **sparse files**, meaning it does not physically allocate storage for empty regions between records. The actual disk usage (`du`) only increased to 12K because only the necessary data blocks were allocated, with large unallocated gaps in the file remaining sparse. This feature allows Linux to efficiently handle large files without consuming unnecessary storage.
