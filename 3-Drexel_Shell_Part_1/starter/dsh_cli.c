@@ -85,7 +85,6 @@ int main()
         }
 
 
-        printf("Received command: %s\n", cmd_buff);
     }
 
     free(cmd_buff);
