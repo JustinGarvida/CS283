@@ -35,61 +35,71 @@
 
 int build_cmd_list(char *cmd_line, command_list_t *clist)
 {
+    if (cmd_line == NULL)
+    {
+        fprintf(stderr, "Error: cmd_line is NULL\n");
+        return ERR_CMD_OR_ARGS_TOO_BIG;
+    }
+
+    if (clist == NULL)
+    {
+        fprintf(stderr, "Error: clist is NULL\n");
+        return ERR_CMD_OR_ARGS_TOO_BIG;
+    }
+
     memset(clist, 0, sizeof(command_list_t));
 
-    // Step 1: Split the command line by pipes
     char *command = strtok(cmd_line, PIPE_STRING);
+    if (command == NULL)
+    {
+        fprintf(stderr, CMD_WARN_NO_CMD);
+        return WARN_NO_CMDS;
+    }
+
     int command_count = 0;
 
     while (command != NULL)
     {
-        // Check if we've exceeded the command limit
         if (command_count >= CMD_MAX)
         {
-            printf(CMD_ERR_PIPE_LIMIT, CMD_MAX); // Error message for too many commands
+            printf(CMD_ERR_PIPE_LIMIT, CMD_MAX);
             return ERR_TOO_MANY_COMMANDS;
         }
 
-        // Step 2: Skip leading spaces
         while (*command == SPACE_CHAR)
         {
             command++;
         }
 
-        // Step 3: Parse the executable name and arguments
         char *exe_name = strtok(command, " ");
         if (exe_name == NULL || strlen(exe_name) >= EXE_MAX)
         {
-            printf("error: executable name too large or missing\n");
+            fprintf(stderr, "Error: Invalid executable name\n");
             return ERR_CMD_OR_ARGS_TOO_BIG;
         }
 
-        // Copy the executable name to the command structure
         strncpy(clist->commands[command_count].exe, exe_name, EXE_MAX);
+        clist->commands[command_count].exe[EXE_MAX - 1] = '\0';
 
-        // Step 4: Parse the arguments (remaining part of the command)
         char *args = strtok(NULL, "");
         if (args != NULL)
         {
             if (strlen(args) >= ARG_MAX)
             {
-                printf("error: arguments too large\n");
+                fprintf(stderr, "Error: Arguments too large\n");
                 return ERR_CMD_OR_ARGS_TOO_BIG;
             }
 
-            // Copy the arguments to the command structure
             strncpy(clist->commands[command_count].args, args, ARG_MAX);
+            clist->commands[command_count].args[ARG_MAX - 1] = '\0';
         }
 
-        // Increment the command count and move to the next command
         command_count++;
         command = strtok(NULL, PIPE_STRING);
     }
 
-    // Set the number of parsed commands
     clist->num = command_count;
 
-    // Output the parsed command list
     printf(CMD_OK_HEADER, command_count);
     for (int i = 0; i < command_count; i++)
     {
