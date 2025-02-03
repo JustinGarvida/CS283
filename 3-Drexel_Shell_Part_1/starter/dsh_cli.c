@@ -74,7 +74,6 @@ int main()
             break;
         }
 
-
         cmd_buff[strcspn(cmd_buff, "\n")] = '\0';
 
         if (strcmp(cmd_buff, EXIT_CMD) == 0)
@@ -83,8 +82,6 @@ int main()
             free(cmd_buff);
             exit(OK);
         }
-
-
     }
 
     free(cmd_buff);
