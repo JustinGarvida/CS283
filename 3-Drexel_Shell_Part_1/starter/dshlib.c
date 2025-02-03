@@ -38,7 +38,7 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
     if (cmd_line == NULL)
     {
         fprintf(stderr, "Error: cmd_line is NULL\n");
-        return ERR_CMD_OR_ARGS_TOO_BIG;
+        return WARN_NO_CMDS;
     }
 
     if (clist == NULL)
@@ -49,17 +49,20 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
 
     memset(clist, 0, sizeof(command_list_t));
 
+    // Step 1: Split the command line by pipes
     char *command = strtok(cmd_line, PIPE_STRING);
-    if (command == NULL)
+    int command_count = 0;
+
+    // Check for an empty command line
+    if (command == NULL || strlen(command) == 0)
     {
-        fprintf(stderr, CMD_WARN_NO_CMD);
+        printf(CMD_WARN_NO_CMD);
         return WARN_NO_CMDS;
     }
 
-    int command_count = 0;
-
     while (command != NULL)
     {
+        // Check if we've exceeded the command limit
         if (command_count >= CMD_MAX)
         {
             printf(CMD_ERR_PIPE_LIMIT, CMD_MAX);
