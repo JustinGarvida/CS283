@@ -44,34 +44,51 @@
  *
  *  See the provided test cases for output expectations.
  */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "dshlib.h"
+
 int main()
 {
     char *cmd_buff;
     int rc = 0;
     command_list_t clist;
 
+
+    cmd_buff = malloc(SH_CMD_MAX);
+    if (cmd_buff == NULL)
+    {
+        fprintf(stderr, "Error: Failed to allocate memory for cmd_buff\n");
+        exit(EXIT_FAILURE);
+    }
+
     while (1)
     {
+
         printf("%s", SH_PROMPT);
-        if (fgets(cmd_buff, ARG_MAX, stdin) == NULL)
+
+        if (fgets(cmd_buff, SH_CMD_MAX, stdin) == NULL)
         {
             printf("\n");
             break;
         }
-        // remove the trailing \n from cmd_buff
+
+
         cmd_buff[strcspn(cmd_buff, "\n")] = '\0';
 
-        // IMPLEMENT THE REST OF THE REQUIREMENTS
-
-        // Exit Command Implementation
-        // Check for the built-in exit command
         if (strcmp(cmd_buff, EXIT_CMD) == 0)
         {
+            printf("Exiting the shell...\n");
             free(cmd_buff);
             exit(OK);
         }
+
+
+        printf("Received command: %s\n", cmd_buff);
     }
 
+    free(cmd_buff);
     printf(M_NOT_IMPL);
     exit(EXIT_NOT_IMPL);
 }
