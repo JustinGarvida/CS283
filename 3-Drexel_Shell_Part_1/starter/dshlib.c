@@ -32,8 +32,60 @@
  *  Standard Library Functions You Might Want To Consider Using
  *      memset(), strcmp(), strcpy(), strtok(), strlen(), strchr()
  */
+
+
 int build_cmd_list(char *cmd_line, command_list_t *clist)
 {
-    printf(M_NOT_IMPL);
-    return EXIT_NOT_IMPL;
+    memset(clist, 0, sizeof(command_list_t));
+
+    // Step 1: Split the command line by pipes
+    char *command = strtok(cmd_line, PIPE_STRING);
+    int command_count = 0;
+
+    while (command != NULL)
+    {
+
+        if (command_count >= CMD_MAX)
+        {
+            return ERR_TOO_MANY_COMMANDS;
+        }
+
+        // Step 2: Skip leading spaces
+        while (*command == SPACE_CHAR)
+        {
+            command++;
+        }
+
+        // Step 3: Parse the executable name and arguments
+        char *exe_name = strtok(command, " ");
+        if (exe_name == NULL || strlen(exe_name) >= EXE_MAX)
+        {
+            return ERR_CMD_OR_ARGS_TOO_BIG;
+        }
+
+
+        strncpy(clist->commands[command_count].exe, exe_name, EXE_MAX);
+
+        // Step 4: Parse the arguments (remaining part of the command)
+        char *args = strtok(NULL, "");
+        if (args != NULL)
+        {
+            if (strlen(args) >= ARG_MAX)
+            {
+                return ERR_CMD_OR_ARGS_TOO_BIG;
+            }
+
+            // Copy the arguments to the command structure
+            strncpy(clist->commands[command_count].args, args, ARG_MAX);
+        }
+
+        // Increment the command count and move to the next command
+        command_count++;
+        command = strtok(NULL, PIPE_STRING);
+    }
+
+    // Set the number of parsed commands
+    clist->num = command_count;
+
+    return OK;
 }
