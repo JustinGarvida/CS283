@@ -100,10 +100,6 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
     clist->num = command_count;
 
     printf(CMD_OK_HEADER, command_count);
-    for (int i = 0; i < command_count; i++)
-    {
-        printf("Command %d: exe='%s', args='%s'\n", i + 1, clist->commands[i].exe, clist->commands[i].args);
-    }
 
     return OK;
 }
