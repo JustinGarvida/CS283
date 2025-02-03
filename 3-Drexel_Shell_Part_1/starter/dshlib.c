@@ -33,6 +33,12 @@
  *      memset(), strcmp(), strcpy(), strtok(), strlen(), strchr()
  */
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+#include "dshlib.h"
+
 int build_cmd_list(char *cmd_line, command_list_t *clist)
 {
     if (cmd_line == NULL)
@@ -49,20 +55,11 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
 
     memset(clist, 0, sizeof(command_list_t));
 
-    // Step 1: Split the command line by pipes
     char *command = strtok(cmd_line, PIPE_STRING);
     int command_count = 0;
 
-    // Check for an empty command line
-    if (command == NULL || strlen(command) == 0)
-    {
-        printf(CMD_WARN_NO_CMD);
-        return WARN_NO_CMDS;
-    }
-
     while (command != NULL)
     {
-        // Check if we've exceeded the command limit
         if (command_count >= CMD_MAX)
         {
             printf(CMD_ERR_PIPE_LIMIT, CMD_MAX);
@@ -77,7 +74,7 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
         char *exe_name = strtok(command, " ");
         if (exe_name == NULL || strlen(exe_name) >= EXE_MAX)
         {
-            fprintf(stderr, "Error: Invalid executable name\n");
+            fprintf(stderr, "Error: Invalid or too long executable name\n");
             return ERR_CMD_OR_ARGS_TOO_BIG;
         }
 
@@ -89,10 +86,9 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
         {
             if (strlen(args) >= ARG_MAX)
             {
-                fprintf(stderr, "Error: Arguments too large\n");
+                fprintf(stderr, "Error: Arguments too long\n");
                 return ERR_CMD_OR_ARGS_TOO_BIG;
             }
-
             strncpy(clist->commands[command_count].args, args, ARG_MAX);
             clist->commands[command_count].args[ARG_MAX - 1] = '\0';
         }
