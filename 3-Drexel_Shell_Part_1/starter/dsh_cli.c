@@ -55,36 +55,60 @@ int main()
     int rc = 0;
     command_list_t clist;
 
-
+    // Allocate memory for cmd_buff
     cmd_buff = malloc(SH_CMD_MAX);
     if (cmd_buff == NULL)
     {
-        fprintf(stderr, "Error: Failed to allocate memory for cmd_buff\n");
+        fprintf(stderr, "Error: Failed to allocate memory\n");
         exit(EXIT_FAILURE);
     }
 
     while (1)
     {
-
+        // Display the shell prompt
         printf("%s", SH_PROMPT);
 
+        // Read input from the user
         if (fgets(cmd_buff, SH_CMD_MAX, stdin) == NULL)
         {
             printf("\n");
             break;
         }
 
+        // Remove the trailing newline character
         cmd_buff[strcspn(cmd_buff, "\n")] = '\0';
 
+        // Check for an empty command
+        if (strlen(cmd_buff) == 0)
+        {
+            printf(CMD_WARN_NO_CMD); // Output warning for empty command
+            continue;
+        }
+
+        // Exit Command Implementation
         if (strcmp(cmd_buff, EXIT_CMD) == 0)
         {
             printf("Exiting the shell...\n");
             free(cmd_buff);
             exit(OK);
         }
-    }
 
-    free(cmd_buff);
-    printf(M_NOT_IMPL);
-    exit(EXIT_NOT_IMPL);
+        // Parse the command using build_cmd_list
+        rc = build_cmd_list(cmd_buff, &clist);
+        if (rc == ERR_TOO_MANY_COMMANDS)
+        {
+            printf(CMD_ERR_PIPE_LIMIT, CMD_MAX);
+            continue;
+        }
+        else if (rc == OK)
+        {
+            printf(CMD_OK_HEADER, clist.num);
+        }
+
+        // DEBUG: Print parsed commands for testing
+        for (int i = 0; i < clist.num; i++)
+        {
+            printf("Command %d: exe='%s', args='%s'\n", i + 1, clist.commands[i].exe, clist.commands[i].args);
+        }
+    }
 }
