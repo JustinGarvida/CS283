@@ -33,7 +33,6 @@
  *      memset(), strcmp(), strcpy(), strtok(), strlen(), strchr()
  */
 
-
 int build_cmd_list(char *cmd_line, command_list_t *clist)
 {
     memset(clist, 0, sizeof(command_list_t));
@@ -44,9 +43,10 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
 
     while (command != NULL)
     {
-
+        // Check if we've exceeded the command limit
         if (command_count >= CMD_MAX)
         {
+            printf(CMD_ERR_PIPE_LIMIT, CMD_MAX); // Error message for too many commands
             return ERR_TOO_MANY_COMMANDS;
         }
 
@@ -60,10 +60,11 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
         char *exe_name = strtok(command, " ");
         if (exe_name == NULL || strlen(exe_name) >= EXE_MAX)
         {
+            printf("error: executable name too large or missing\n");
             return ERR_CMD_OR_ARGS_TOO_BIG;
         }
 
-
+        // Copy the executable name to the command structure
         strncpy(clist->commands[command_count].exe, exe_name, EXE_MAX);
 
         // Step 4: Parse the arguments (remaining part of the command)
@@ -72,6 +73,7 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
         {
             if (strlen(args) >= ARG_MAX)
             {
+                printf("error: arguments too large\n");
                 return ERR_CMD_OR_ARGS_TOO_BIG;
             }
 
@@ -86,6 +88,13 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
 
     // Set the number of parsed commands
     clist->num = command_count;
+
+    // Output the parsed command list
+    printf(CMD_OK_HEADER, command_count);
+    for (int i = 0; i < command_count; i++)
+    {
+        printf("Command %d: exe='%s', args='%s'\n", i + 1, clist->commands[i].exe, clist->commands[i].args);
+    }
 
     return OK;
 }
