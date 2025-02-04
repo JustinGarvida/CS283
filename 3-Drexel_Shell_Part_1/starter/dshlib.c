@@ -96,5 +96,5 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
     // Set the number of parsed commands
     clist->num = command_count;
 
-    return command_count;
+    return OK;
 }
