@@ -55,6 +55,8 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
 
     while (command != NULL)
     {
+        printf("DEBUG: Parsed command segment: '%s'\n", command); // Debug output
+
         // Check if we've exceeded the command limit
         if (command_count >= CMD_MAX)
         {
@@ -73,6 +75,7 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
         {
             return ERR_CMD_OR_ARGS_TOO_BIG;
         }
+        printf("DEBUG: Executable name: '%s'\n", exe_name); // Debug output
 
         // Copy the executable name to the command structure
         strncpy(clist->commands[command_count].exe, exe_name, EXE_MAX);
@@ -80,10 +83,21 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
 
         // Parse arguments (remaining part of the command)
         char *args = strtok(NULL, "");
-        if (args != NULL && strlen(args) < ARG_MAX)
+        if (args != NULL)
         {
+            printf("DEBUG: Arguments: '%s'\n", args); // Debug output
+
+            if (strlen(args) >= ARG_MAX)
+            {
+                return ERR_CMD_OR_ARGS_TOO_BIG;
+            }
+
             strncpy(clist->commands[command_count].args, args, ARG_MAX);
             clist->commands[command_count].args[ARG_MAX - 1] = '\0';
+        }
+        else
+        {
+            printf("DEBUG: No arguments for command '%s'\n", exe_name); // Debug output
         }
 
         // Increment the command count
@@ -96,5 +110,6 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
     // Set the number of parsed commands
     clist->num = command_count;
 
+    printf("DEBUG: Total commands parsed: %d\n", clist->num); // Debug output
     return OK;
 }
