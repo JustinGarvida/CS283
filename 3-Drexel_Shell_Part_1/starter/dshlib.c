@@ -39,6 +39,12 @@
 #include <ctype.h>
 #include "dshlib.h"
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+#include "dshlib.h"
+
 int build_cmd_list(char *cmd_line, command_list_t *clist)
 {
     if (cmd_line == NULL || clist == NULL)
@@ -55,7 +61,7 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
 
     while (command != NULL)
     {
-        printf("DEBUG: Parsed command segment: '%s'\n", command); // Debug output
+        printf("DEBUG: strtok produced command segment: '%s'\n", command); // Output after strtok
 
         // Check if we've exceeded the command limit
         if (command_count >= CMD_MAX)
@@ -71,11 +77,12 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
 
         // Parse the executable name
         char *exe_name = strtok(command, " ");
+        printf("DEBUG: strtok produced executable token: '%s'\n", exe_name ? exe_name : "NULL"); // Token output
+
         if (exe_name == NULL || strlen(exe_name) >= EXE_MAX)
         {
             return ERR_CMD_OR_ARGS_TOO_BIG;
         }
-        printf("DEBUG: Executable name: '%s'\n", exe_name); // Debug output
 
         // Copy the executable name to the command structure
         strncpy(clist->commands[command_count].exe, exe_name, EXE_MAX);
@@ -83,10 +90,10 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
 
         // Parse arguments (remaining part of the command)
         char *args = strtok(NULL, "");
+        printf("DEBUG: strtok produced arguments token: '%s'\n", args ? args : "NULL"); // Token output
+
         if (args != NULL)
         {
-            printf("DEBUG: Arguments: '%s'\n", args); // Debug output
-
             if (strlen(args) >= ARG_MAX)
             {
                 return ERR_CMD_OR_ARGS_TOO_BIG;
@@ -95,16 +102,13 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
             strncpy(clist->commands[command_count].args, args, ARG_MAX);
             clist->commands[command_count].args[ARG_MAX - 1] = '\0';
         }
-        else
-        {
-            printf("DEBUG: No arguments for command '%s'\n", exe_name); // Debug output
-        }
 
         // Increment the command count
         command_count++;
 
         // Move to the next command
         command = strtok(NULL, PIPE_STRING);
+        printf("DEBUG: strtok moving to next command: '%s'\n", command ? command : "NULL"); // Output next command
     }
 
     // Set the number of parsed commands
