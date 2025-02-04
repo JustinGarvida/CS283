@@ -36,57 +36,43 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
     {
         return WARN_NO_CMDS;
     }
-
     memset(clist, 0, sizeof(command_list_t));
-
-    // Split the command line by pipes
     char *command = strtok(cmd_line, PIPE_STRING);
     int command_count = 0;
 
-    if (command == NULL)
+    if (command == NULL) 
     {
         return WARN_NO_CMDS;
     }
-
     while (command != NULL)
     {
-        // Check if we've exceeded the maximum allowed commands
         if (command_count >= CMD_MAX)
         {
-            printf(CMD_ERR_PIPE_LIMIT, CMD_MAX);
             return ERR_TOO_MANY_COMMANDS;
         }
 
-        // Remove leading whitespace from the command
-        while (*command == SPACE_CHAR)
+        while (*command == SPACE_CHAR) 
         {
             command++;
         }
 
-        // Check if the command length is too long
-        if (strlen(command) >= ARG_MAX)
+        if (strlen(command) >= ARG_MAX) 
         {
             return ERR_CMD_OR_ARGS_TOO_BIG;
         }
-
-        // Find the first space in the command to separate executable and arguments
         char *space_pos = strchr(command, SPACE_CHAR);
         if (space_pos != NULL)
         {
-            // We found a space; separate executable and arguments
             size_t exe_len = space_pos - command;
             if (exe_len >= EXE_MAX)
             {
                 return ERR_CMD_OR_ARGS_TOO_BIG;
             }
-
-            // Copy the executable name
             strncpy(clist->commands[command_count].exe, command, exe_len);
             clist->commands[command_count].exe[exe_len] = '\0';
 
-            // Skip the space and copy the remaining string as arguments
             space_pos++;
-            while (*space_pos == SPACE_CHAR) // Remove any additional leading spaces from arguments
+            while (*space_pos == SPACE_CHAR) 
             {
                 space_pos++;
             }
@@ -96,8 +82,7 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
         }
         else
         {
-            // No space found; the entire command is the executable name
-            if (strlen(command) >= EXE_MAX)
+            if (strlen(command) >= EXE_MAX) 
             {
                 return ERR_CMD_OR_ARGS_TOO_BIG;
             }
@@ -106,14 +91,11 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
             clist->commands[command_count].exe[EXE_MAX - 1] = '\0';
         }
 
-        // Increment the command count
         command_count++;
 
-        // Move to the next command
         command = strtok(NULL, PIPE_STRING);
     }
 
-    // Set the number of parsed commands
     clist->num = command_count;
 
     return OK;

@@ -99,7 +99,6 @@ int main()
             printf(CMD_WARN_NO_CMD);
         }
     }
-
     free(cmd_buff);
     return EXIT_SUCCESS;
 }
