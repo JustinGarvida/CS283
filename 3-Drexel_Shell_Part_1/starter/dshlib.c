@@ -52,11 +52,11 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
         return WARN_NO_CMDS;
     }
 
-    // Initialize the command list structure
+    
     memset(clist, 0, sizeof(command_list_t));
 
     // Split the command line by pipes
-    char *command = strtok(cmd_line, PIPE_STRING);
+    char *command = strtok(cmd_line, PIPE_CHAR);
     int command_count = 0;
 
     while (command != NULL)
