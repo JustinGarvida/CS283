@@ -43,6 +43,12 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
     char *command = strtok(cmd_line, PIPE_STRING);
     int command_count = 0;
 
+    if (command == NULL)
+    {
+        printf(CMD_WARN_NO_CMD);
+        return WARN_NO_CMDS;
+    }
+
     while (command != NULL)
     {
         // Check if we've exceeded the maximum allowed commands
@@ -105,13 +111,6 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
 
         // Move to the next command
         command = strtok(NULL, PIPE_STRING);
-    }
-
-    // Check if no valid commands were provided
-    if (command_count == 0)
-    {
-        printf(CMD_WARN_NO_CMD);
-        return WARN_NO_CMDS;
     }
 
     // Set the number of parsed commands
