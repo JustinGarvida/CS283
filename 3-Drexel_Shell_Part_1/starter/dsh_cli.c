@@ -44,6 +44,7 @@
  *
  *  See the provided test cases for output expectations.
  */
+
 int main()
 {
     char *cmd_buff = malloc(SH_CMD_MAX);
@@ -94,6 +95,9 @@ int main()
                     printf("<%d> %s\n", i + 1, clist.commands[i].exe);
                 }
             }
+
+            // Reset rc to 1 after successful execution
+            rc = 1;
         }
         else if (rc == ERR_TOO_MANY_COMMANDS)
         {
@@ -108,11 +112,9 @@ int main()
             fprintf(stderr, "Error: Command parsing failed with code %d\n", rc);
         }
 
-        // Clean up the command list before resetting the loop
-        free_cmd_list(&clist);
+        // Continue to the next prompt iteration
     }
 
-    // Free allocated memory before exiting
     free(cmd_buff);
     return EXIT_SUCCESS;
 }
