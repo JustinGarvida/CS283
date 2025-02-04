@@ -45,7 +45,6 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
 
     if (command == NULL)
     {
-        printf(CMD_WARN_NO_CMD);
         return WARN_NO_CMDS;
     }
 
