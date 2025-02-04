@@ -79,6 +79,8 @@ int main()
         if (strcmp(cmd_buff, EXIT_CMD) == 0)
         {
             printf("Exiting the shell...\n");
+            free(cmd_buff);
+            return EXIT_SUCCESS;
             break; 
         }
 
@@ -115,8 +117,4 @@ int main()
 
         // Continue to the next prompt iteration
     }
-
-    // Cleanup and exit
-    free(cmd_buff);
-    return EXIT_SUCCESS;
 }
