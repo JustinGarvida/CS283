@@ -52,33 +52,38 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
         return WARN_NO_CMDS;
     }
 
-    
+    // Clear the command list structure
     memset(clist, 0, sizeof(command_list_t));
 
     // Split the command line by pipes
-    char *command = strtok(cmd_line, PIPE_CHAR);
+    char *command = strtok(cmd_line, PIPE_STRING);
     int command_count = 0;
 
     while (command != NULL)
     {
-        printf("DEBUG: strtok produced command segment: '%s'\n", command); // Output after strtok
+        // Debug output
+        printf("DEBUG: strtok produced command segment: '%s'\n", command);
 
-        // Check if we've exceeded the command limit
+        // Check if we've exceeded the maximum allowed commands
         if (command_count >= CMD_MAX)
         {
             return ERR_TOO_MANY_COMMANDS;
         }
 
-        // Skip leading whitespace
+        // Remove leading and trailing whitespace from the command
         while (*command == SPACE_CHAR)
+            command++; // Trim leading whitespace
+
+        // Trim trailing whitespace
+        char *end = command + strlen(command) - 1;
+        while (end > command && isspace(*end))
         {
-            command++;
+            *end = '\0';
+            end--;
         }
 
-        // Parse the executable name
+        // Parse the executable name (first token)
         char *exe_name = strtok(command, " ");
-        printf("DEBUG: strtok produced executable token: '%s'\n", exe_name ? exe_name : "NULL"); // Token output
-
         if (exe_name == NULL || strlen(exe_name) >= EXE_MAX)
         {
             return ERR_CMD_OR_ARGS_TOO_BIG;
@@ -88,12 +93,14 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
         strncpy(clist->commands[command_count].exe, exe_name, EXE_MAX);
         clist->commands[command_count].exe[EXE_MAX - 1] = '\0';
 
-        // Parse arguments (remaining part of the command)
+        // Parse the arguments (remaining part of the command)
         char *args = strtok(NULL, "");
-        printf("DEBUG: strtok produced arguments token: '%s'\n", args ? args : "NULL"); // Token output
-
         if (args != NULL)
         {
+            // Remove leading whitespace in arguments
+            while (*args == SPACE_CHAR)
+                args++;
+
             if (strlen(args) >= ARG_MAX)
             {
                 return ERR_CMD_OR_ARGS_TOO_BIG;
@@ -108,12 +115,13 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
 
         // Move to the next command
         command = strtok(NULL, PIPE_STRING);
-        printf("DEBUG: strtok moving to next command: '%s'\n", command ? command : "NULL"); // Output next command
     }
 
     // Set the number of parsed commands
     clist->num = command_count;
 
-    printf("DEBUG: Total commands parsed: %d\n", clist->num); // Debug output
+    // Debug output
+    printf("DEBUG: Total commands parsed: %d\n", clist->num);
+
     return OK;
 }
