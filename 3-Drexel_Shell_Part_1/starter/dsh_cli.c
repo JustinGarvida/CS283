@@ -88,7 +88,6 @@ int main()
         int rc = build_cmd_list(cmd_buff, &clist);
         if (rc == OK)
         {
-            // Output the parsed commands in the desired format
             printf(CMD_OK_HEADER, clist.num);
             for (int i = 0; i < clist.num; i++)
             {
