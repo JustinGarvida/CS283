@@ -75,18 +75,18 @@ int main()
         // Remove the trailing newline character
         cmd_buff[strcspn(cmd_buff, "\n")] = '\0';
 
-        // Exit command
+        // Exit command check
         if (strcmp(cmd_buff, EXIT_CMD) == 0)
         {
             printf("Exiting the shell...\n");
-            break;
+            break; // Exit the shell
         }
 
         // Parse the command line
         int rc = build_cmd_list(cmd_buff, &clist);
         if (rc == OK)
         {
-            // Output the parsed commands directly in the desired format
+            // Output the parsed commands in the desired format
             printf(CMD_OK_HEADER, clist.num);
             for (int i = 0; i < clist.num; i++)
             {
@@ -112,8 +112,11 @@ int main()
         {
             fprintf(stderr, "Error: Command parsing failed with code %d\n", rc);
         }
+
+        // Continue to the next prompt iteration
     }
 
+    // Cleanup and exit
     free(cmd_buff);
     return EXIT_SUCCESS;
 }
