@@ -44,11 +44,6 @@
  *
  *  See the provided test cases for output expectations.
  */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "dshlib.h"
-
 int main()
 {
     char *cmd_buff = malloc(SH_CMD_MAX);
@@ -81,7 +76,6 @@ int main()
             printf("Exiting the shell...\n");
             free(cmd_buff);
             return EXIT_SUCCESS;
-            break; 
         }
 
         // Parse the command line
@@ -114,6 +108,11 @@ int main()
             fprintf(stderr, "Error: Command parsing failed with code %d\n", rc);
         }
 
-        // Continue to the next prompt iteration
+        // Clean up the command list before resetting the loop
+        free_cmd_list(&clist);
     }
+
+    // Free allocated memory before exiting
+    free(cmd_buff);
+    return EXIT_SUCCESS;
 }
