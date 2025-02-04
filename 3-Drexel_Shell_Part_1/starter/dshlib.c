@@ -39,6 +39,7 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
     {
         return WARN_NO_CMDS;
     }
+
     memset(clist, 0, sizeof(command_list_t));
 
     // Split the command line by pipes
@@ -47,7 +48,6 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
 
     while (command != NULL)
     {
-
         // Check if we've exceeded the maximum allowed commands
         if (command_count >= CMD_MAX)
         {
@@ -60,16 +60,48 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
             command++;
         }
 
-      
+        // Check if the command length is too long
         if (strlen(command) >= ARG_MAX)
         {
             return ERR_CMD_OR_ARGS_TOO_BIG;
         }
 
-        // Copy the entire command into the args field
-        strncpy(clist->commands[command_count].args, command, ARG_MAX);
-        clist->commands[command_count].args[ARG_MAX - 1] = '\0';
+        // Find the first space in the command to separate executable and arguments
+        char *space_pos = strchr(command, SPACE_CHAR);
+        if (space_pos != NULL)
+        {
+            // We found a space; separate executable and arguments
+            size_t exe_len = space_pos - command;
+            if (exe_len >= EXE_MAX)
+            {
+                return ERR_CMD_OR_ARGS_TOO_BIG;
+            }
 
+            // Copy the executable name
+            strncpy(clist->commands[command_count].exe, command, exe_len);
+            clist->commands[command_count].exe[exe_len] = '\0';
+
+            // Skip the space and copy the remaining string as arguments
+            space_pos++;
+            while (*space_pos == SPACE_CHAR) // Remove any additional leading spaces from arguments
+            {
+                space_pos++;
+            }
+
+            strncpy(clist->commands[command_count].args, space_pos, ARG_MAX);
+            clist->commands[command_count].args[ARG_MAX - 1] = '\0';
+        }
+        else
+        {
+            // No space found; the entire command is the executable name
+            if (strlen(command) >= EXE_MAX)
+            {
+                return ERR_CMD_OR_ARGS_TOO_BIG;
+            }
+
+            strncpy(clist->commands[command_count].exe, command, EXE_MAX);
+            clist->commands[command_count].exe[EXE_MAX - 1] = '\0';
+        }
 
         // Increment the command count
         command_count++;
