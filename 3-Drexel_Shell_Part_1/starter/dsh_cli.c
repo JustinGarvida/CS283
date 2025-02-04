@@ -51,17 +51,14 @@
 
 int main()
 {
-    char *cmd_buff;
-    int rc = 0;
-    command_list_t clist;
-
-    // Allocate memory for cmd_buff
-    cmd_buff = malloc(SH_CMD_MAX);
+    char *cmd_buff = malloc(SH_CMD_MAX);
     if (cmd_buff == NULL)
     {
         fprintf(stderr, "Error: Failed to allocate memory\n");
-        exit(EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
+
+    command_list_t clist;
 
     while (1)
     {
@@ -72,43 +69,51 @@ int main()
         if (fgets(cmd_buff, SH_CMD_MAX, stdin) == NULL)
         {
             printf("\n");
-            break;
+            break; // Handle EOF (Ctrl+D) or input error
         }
 
         // Remove the trailing newline character
         cmd_buff[strcspn(cmd_buff, "\n")] = '\0';
 
-        // Check for an empty command
-        if (strlen(cmd_buff) == 0)
-        {
-            printf(CMD_WARN_NO_CMD); // Output warning for empty command
-            continue;
-        }
-
-        // Exit Command Implementation
+        // Exit command
         if (strcmp(cmd_buff, EXIT_CMD) == 0)
         {
             printf("Exiting the shell...\n");
-            free(cmd_buff);
-            exit(OK);
+            break;
         }
 
-        // Parse the command using build_cmd_list
-        rc = build_cmd_list(cmd_buff, &clist);
-        if (rc == ERR_TOO_MANY_COMMANDS)
+        // Parse the command line
+        int rc = build_cmd_list(cmd_buff, &clist);
+        if (rc == OK)
+        {
+            // Output the parsed commands directly in the desired format
+            printf(CMD_OK_HEADER, clist.num);
+            for (int i = 0; i < clist.num; i++)
+            {
+                if (strlen(clist.commands[i].args) > 0)
+                {
+                    printf("<%d> %s [%s]\n", i + 1, clist.commands[i].exe, clist.commands[i].args);
+                }
+                else
+                {
+                    printf("<%d> %s\n", i + 1, clist.commands[i].exe);
+                }
+            }
+        }
+        else if (rc == ERR_TOO_MANY_COMMANDS)
         {
             printf(CMD_ERR_PIPE_LIMIT, CMD_MAX);
-            continue;
         }
-        else if (rc == OK)
+        else if (rc == WARN_NO_CMDS)
         {
-            printf(CMD_OK_HEADER, clist.num);
+            printf(CMD_WARN_NO_CMD);
         }
-
-        // DEBUG: Print parsed commands for testing
-        for (int i = 0; i < clist.num; i++)
+        else
         {
-            printf("Command %d: exe='%s', args='%s'\n", i + 1, clist.commands[i].exe, clist.commands[i].args);
+            fprintf(stderr, "Error: Command parsing failed with code %d\n", rc);
         }
     }
+
+    free(cmd_buff);
+    return EXIT_SUCCESS;
 }
