@@ -28,9 +28,6 @@
  *    ERR_CMD_OR_ARGS_TOO_BIG: One of the commands provided by the user
  *                             was larger than allowed, either the
  *                             executable name, or the arg string.
- *
- *  Standard Library Functions You Might Want To Consider Using
- *      memset(), strcmp(), strcpy(), strtok(), strlen(), strchr()
  */
 
 int build_cmd_list(char *cmd_line, command_list_t *clist)
@@ -108,6 +105,13 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
 
         // Move to the next command
         command = strtok(NULL, PIPE_STRING);
+    }
+
+    // Check if no valid commands were provided
+    if (command_count == 0)
+    {
+        printf(CMD_WARN_NO_CMD);
+        return WARN_NO_CMDS;
     }
 
     // Set the number of parsed commands
