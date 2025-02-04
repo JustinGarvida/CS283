@@ -79,7 +79,7 @@ int main()
         if (strcmp(cmd_buff, EXIT_CMD) == 0)
         {
             printf("Exiting the shell...\n");
-            break;
+            break; 
         }
 
         // Parse the command line
@@ -113,6 +113,10 @@ int main()
             fprintf(stderr, "Error: Command parsing failed with code %d\n", rc);
         }
 
+        // Continue to the next prompt iteration
     }
 
+    // Cleanup and exit
+    free(cmd_buff);
+    return EXIT_SUCCESS;
 }
