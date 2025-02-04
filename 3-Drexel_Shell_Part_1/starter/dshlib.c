@@ -53,6 +53,7 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
         // Check if we've exceeded the maximum allowed commands
         if (command_count >= CMD_MAX)
         {
+            printf(CMD_ERR_PIPE_LIMIT, CMD_MAX);
             return ERR_TOO_MANY_COMMANDS;
         }
 
