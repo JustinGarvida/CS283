@@ -62,7 +62,7 @@ int main()
         // Dragon command check
         if (strcmp(cmd_buff, "dragon") == 0)
         {
-            printf(DRAGON_IMAGE);
+            printf("%s", DRAGON_IMAGE);
             continue;
         }
 
