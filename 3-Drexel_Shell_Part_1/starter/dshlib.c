@@ -86,7 +86,6 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
             {
                 return ERR_CMD_OR_ARGS_TOO_BIG;
             }
-
             strncpy(clist->commands[command_count].exe, command, EXE_MAX);
             clist->commands[command_count].exe[EXE_MAX - 1] = '\0';
         }

@@ -45,6 +45,8 @@
  *  See the provided test cases for output expectations.
  */
 
+dragon_command = 
+
 int main()
 {
     char *cmd_buff = malloc(SH_CMD_MAX);
@@ -73,7 +75,12 @@ int main()
             return EXIT_SUCCESS;
         }
 
-        int rc = build_cmd_list(cmd_buff, &clist);
+        // Dragon Command Check
+        if (strcmp(cmd_buff, "dragon") == 0) {
+            fprintf(DRAGON_IMAGE);
+        }
+
+        int rc = build_cmd_list(cmd_buff, &clist); 
         if (rc == OK)
         {
             printf(CMD_OK_HEADER, clist.num);
