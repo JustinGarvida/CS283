@@ -30,71 +30,52 @@
  *                             executable name, or the arg string.
  */
 
-int build_cmd_list(char *cmd_line, command_list_t *clist)
-{
-    if (cmd_line == NULL || clist == NULL)
-    {
+int build_cmd_list(char *cmd_line, command_list_t *clist) {
+    if (cmd_line == NULL || clist == NULL){
         return WARN_NO_CMDS;
     }
     memset(clist, 0, sizeof(command_list_t));
     char *command = strtok(cmd_line, PIPE_STRING);
     int command_count = 0;
 
-    if (command == NULL) 
-    {
+    if (command == NULL) {
         return WARN_NO_CMDS;
     }
-    while (command != NULL)
-    {
-        if (command_count >= CMD_MAX)
-        {
+    while (command != NULL){
+        if (command_count >= CMD_MAX){
             return ERR_TOO_MANY_COMMANDS;
         }
-
-        while (*command == SPACE_CHAR) 
-        {
+        while (*command == SPACE_CHAR) {
             command++;
         }
-        if (strlen(command) >= ARG_MAX) 
-        {
+        if (strlen(command) >= ARG_MAX) {
             return ERR_CMD_OR_ARGS_TOO_BIG;
         }
         char *space_pos = strchr(command, SPACE_CHAR);
-        if (space_pos != NULL)
-        {
+        if (space_pos != NULL) {
             size_t exe_len = space_pos - command;
-            if (exe_len >= EXE_MAX)
-            {
+            if (exe_len >= EXE_MAX) {
                 return ERR_CMD_OR_ARGS_TOO_BIG;
             }
             strncpy(clist->commands[command_count].exe, command, exe_len);
             clist->commands[command_count].exe[exe_len] = '\0';
-
             space_pos++;
-            while (*space_pos == SPACE_CHAR) 
-            {
+            while (*space_pos == SPACE_CHAR) {
                 space_pos++;
             }
-
             strncpy(clist->commands[command_count].args, space_pos, ARG_MAX);
             clist->commands[command_count].args[ARG_MAX - 1] = '\0';
         }
-        else
-        {
-            if (strlen(command) >= EXE_MAX) 
-            {
+        else {
+            if (strlen(command) >= EXE_MAX)  {
                 return ERR_CMD_OR_ARGS_TOO_BIG;
             }
             strncpy(clist->commands[command_count].exe, command, EXE_MAX);
             clist->commands[command_count].exe[EXE_MAX - 1] = '\0';
         }
-
         command_count++;
-
         command = strtok(NULL, PIPE_STRING);
     }
-
     clist->num = command_count;
-
     return OK;
 }
