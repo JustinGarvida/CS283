@@ -55,7 +55,6 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
         {
             command++;
         }
-
         if (strlen(command) >= ARG_MAX) 
         {
             return ERR_CMD_OR_ARGS_TOO_BIG;

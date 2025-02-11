@@ -66,7 +66,7 @@ int main()
             continue;
         }
 
-        // Build command list
+        //Building Command List
         int rc = build_cmd_list(cmd_buff, &clist);
         if (rc == OK)
         {
@@ -92,8 +92,6 @@ int main()
             printf(CMD_WARN_NO_CMD);
         }
     }
-
-    // Free allocated memory and exit
     free(cmd_buff);
     return EXIT_SUCCESS;
 }
