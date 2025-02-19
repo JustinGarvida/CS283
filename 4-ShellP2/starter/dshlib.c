@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 #include "dshlib.h"
+#include "dragon.c"
 
 /*
  * Implement your exec_local_cmd_loop function by building a loop that prompts the
@@ -51,21 +52,127 @@
  *  Standard Library Functions You Might Want To Consider Using (assignment 2+)
  *      fork(), execvp(), exit(), chdir()
  */
+
 int exec_local_cmd_loop()
 {
-    char *cmd_buff;
-    int rc = 0;
-    cmd_buff_t cmd;
+    cmd_buff_t cmd_buff;
+    int rc = alloc_cmd_buff(&cmd_buff);
+    if (rc != OK)
+    {
+        fprintf(stderr, "Error: Failed to allocate memory\n");
+        return ERR_MEMORY;
+    }
+    while (1)
+    {
+        printf("%s", SH_PROMPT);
+        if (fgets(cmd_buff._cmd_buffer, SH_CMD_MAX, stdin) == NULL)
+        {
+            printf("\n");
+            break;
+        }
+        cmd_buff._cmd_buffer[strcspn(cmd_buff._cmd_buffer, "\n")] = '\0';
 
-    // TODO IMPLEMENT MAIN LOOP
+        if (strcmp(cmd_buff._cmd_buffer, EXIT_CMD) == 0)
+        {
+            free_cmd_buff(&cmd_buff);
+            return OK;
+        }
 
-    // TODO IMPLEMENT parsing input to cmd_buff_t *cmd_buff
+        if (strcmp(cmd_buff._cmd_buffer, "dragon") == 0)
+        {
+            print_dragon();
+            continue;
+        }
 
-    // TODO IMPLEMENT if built-in command, execute builtin logic for exit, cd (extra credit: dragon)
-    // the cd command should chdir to the provided directory; if no directory is provided, do nothing
+        rc = build_cmd_buff(cmd_buff._cmd_buffer, &cmd_buff);
+        if (rc == WARN_NO_CMDS)
+        {
+            printf(CMD_WARN_NO_CMD);
+            continue;
+        }
 
-    // TODO IMPLEMENT if not built-in command, fork/exec as an external command
-    // for example, if the user input is "ls -l", you would fork/exec the command "ls" with the arg "-l"
+        pid_t pid = fork();
+        if (pid == 0)
+        {
+            execvp(cmd_buff.argv[0], cmd_buff.argv);
+            // fprintf(stderr, CMD_ERR_EXECUTE);
+            exit(EXIT_FAILURE);
+        }
+        else if (pid > 0)
+        {
+            int status;
+            waitpid(pid, &status, 0);
+        }
+        else
+        {
+            fprintf(stderr, "Error: Failed to fork process\n");
+        }
+    }
 
+    free_cmd_buff(&cmd_buff);
     return OK;
 }
+
+int alloc_cmd_buff(cmd_buff_t *cmd_buff)
+{
+    if (!cmd_buff)
+    {
+        return ERR_MEMORY;
+    }
+    cmd_buff->_cmd_buffer = malloc(SH_CMD_MAX);
+    if (!cmd_buff->_cmd_buffer)
+    {
+        return ERR_MEMORY;
+    }
+    cmd_buff->argc = 0;
+    memset(cmd_buff->argv, 0, sizeof(cmd_buff->argv));
+    return OK;
+}
+
+int free_cmd_buff(cmd_buff_t *cmd_buff)
+{
+    if (!cmd_buff || !cmd_buff->_cmd_buffer)
+    {
+        return ERR_MEMORY;
+    }
+    free(cmd_buff->_cmd_buffer);
+    cmd_buff->_cmd_buffer = NULL;
+    cmd_buff->argc = 0;
+    memset(cmd_buff->argv, 0, sizeof(cmd_buff->argv));
+    return OK;
+}
+
+int clear_cmd_buff(cmd_buff_t *cmd_buff)
+{
+    if (!cmd_buff || !cmd_buff->_cmd_buffer)
+    {
+        return ERR_MEMORY;
+    }
+    memset(cmd_buff->_cmd_buffer, 0, SH_CMD_MAX);
+    cmd_buff->argc = 0;
+    memset(cmd_buff->argv, 0, sizeof(cmd_buff->argv));
+    return OK;
+}
+
+int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
+{
+    if (!cmd_line || !cmd_buff || !cmd_buff->_cmd_buffer)
+    {
+        return ERR_MEMORY;
+    }
+
+    strncpy(cmd_buff->_cmd_buffer, cmd_line, SH_CMD_MAX - 1);
+    cmd_buff->_cmd_buffer[SH_CMD_MAX - 1] = '\0';
+    cmd_buff->argc = 0;
+
+    char *token = strtok(cmd_buff->_cmd_buffer, " ");
+    while (token != NULL && cmd_buff->argc < CMD_ARGV_MAX - 1)
+    {
+        cmd_buff->argv[cmd_buff->argc++] = token;
+        token = strtok(NULL, " ");
+    }
+    cmd_buff->argv[cmd_buff->argc] = NULL;
+
+    return (cmd_buff->argc > 0) ? OK : WARN_NO_CMDS;
+}
+
