@@ -86,25 +86,36 @@ int exec_local_cmd_loop()
         rc = build_cmd_buff(cmd_buff._cmd_buffer, &cmd_buff);
         if (rc == WARN_NO_CMDS)
         {
-            printf(CMD_WARN_NO_CMD);
+            fprintf(stderr, CMD_WARN_NO_CMD);
             continue;
+        }
+        else if (rc == ERR_MEMORY)
+        {
+            fprintf(stderr, "Error: Command buffer memory allocation failed\n");
+            break;
         }
 
         pid_t pid = fork();
-        if (pid == 0)
+        if (pid == -1)
         {
-            execvp(cmd_buff.argv[0], cmd_buff.argv);
-            // fprintf(stderr, CMD_ERR_EXECUTE);
-            exit(EXIT_FAILURE);
+            fprintf(stderr, "Error: Failed to fork process\n");
+            break;
         }
-        else if (pid > 0)
+        else if (pid == 0)
         {
-            int status;
-            waitpid(pid, &status, 0);
+            if (execvp(cmd_buff.argv[0], cmd_buff.argv) == -1)
+            {
+                // printf(CMD_ERR_EXECUTE);
+                exit(EXIT_FAILURE);
+            }
         }
         else
         {
-            fprintf(stderr, "Error: Failed to fork process\n");
+            int status;
+            if (waitpid(pid, &status, 0) == -1)
+            {
+                fprintf(stderr, "Error: Failed to wait for child process\n");
+            }
         }
     }
 
@@ -174,4 +185,3 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
 
     return (cmd_buff->argc > 0) ? OK : WARN_NO_CMDS;
 }
-
