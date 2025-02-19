@@ -7,7 +7,6 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 #include "dshlib.h"
-#include "dragon.c"
 
 /*
  * Implement your exec_local_cmd_loop function by building a loop that prompts the
