@@ -83,6 +83,20 @@ int exec_local_cmd_loop()
             continue;
         }
 
+        if (strncmp(cmd_buff._cmd_buffer, "cd", 2) == 0)
+        {
+            char *dir = strtok(cmd_buff._cmd_buffer + 2, " ");
+            if (!dir)
+            {
+                dir = getenv("HOME");
+            }
+            if (chdir(dir) != 0)
+            {
+                perror("cd");
+            }
+            continue;
+        }
+
         rc = build_cmd_buff(cmd_buff._cmd_buffer, &cmd_buff);
         if (rc == WARN_NO_CMDS)
         {
@@ -105,7 +119,7 @@ int exec_local_cmd_loop()
         {
             if (execvp(cmd_buff.argv[0], cmd_buff.argv) == -1)
             {
-                // printf(CMD_ERR_EXECUTE);
+                // fprintf(stderr, CMD_ERR_EXECUTE);
                 exit(EXIT_FAILURE);
             }
         }
