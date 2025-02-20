@@ -70,8 +70,24 @@ int exec_local_cmd_loop()
             printf("\n");
             break;
         }
+
         cmd_buff._cmd_buffer[strcspn(cmd_buff._cmd_buffer, "\n")] = '\0';
-        Built_In_Cmds cmd_type = match_command(cmd_buff._cmd_buffer);
+
+        // Parse command and arguments FIRST
+        rc = build_cmd_buff(cmd_buff._cmd_buffer, &cmd_buff);
+        if (rc == WARN_NO_CMDS)
+        {
+            fprintf(stderr, CMD_WARN_NO_CMD);
+            continue;
+        }
+        else if (rc == ERR_MEMORY)
+        {
+            fprintf(stderr, "Error: Command buffer memory allocation failed\n");
+            break;
+        }
+
+        // Match built-in commands using parsed argv[0]
+        Built_In_Cmds cmd_type = match_command(cmd_buff.argv[0]);
 
         // Handle Built-In Commands
         if (cmd_type != BI_NOT_BI)
@@ -86,22 +102,10 @@ int exec_local_cmd_loop()
         }
 
         // Handle External Commands
-        rc = build_cmd_buff(cmd_buff._cmd_buffer, &cmd_buff);
-        if (rc == WARN_NO_CMDS)
-        {
-            fprintf(stderr, CMD_WARN_NO_CMD);
-            continue;
-        }
-        else if (rc == ERR_MEMORY)
-        {
-            fprintf(stderr, "Error: Command buffer memory allocation failed\n");
-            break;
-        }
-
-        rc = exec_cmd(&cmd_buff); // Execute non-built-in commands
+        rc = exec_cmd(&cmd_buff);
         if (rc != OK)
         {
-            fprintf(stderr, "Error: Failed to execute command\n");
+            // fprintf(stderr, CMD_ERR_EXECUTE);
         }
     }
 
@@ -143,7 +147,7 @@ Built_In_Cmds match_command(const char *input)
         return BI_CMD_EXIT;
     if (strcmp(input, "dragon") == 0)
         return BI_CMD_DRAGON;
-    if (strncmp(input, "cd", 2) == 0)
+    if (strcmp(input, "cd") == 0)
         return BI_CMD_CD;
 
     return BI_NOT_BI; // Not a built-in command
@@ -151,12 +155,12 @@ Built_In_Cmds match_command(const char *input)
 
 Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd)
 {
-    Built_In_Cmds cmd_type = match_command(cmd->_cmd_buffer);
+    Built_In_Cmds cmd_type = match_command(cmd->argv[0]);
 
     switch (cmd_type)
     {
     case BI_CMD_EXIT:
-        return BI_CMD_EXIT; // Exit command (handled in `exec_local_cmd_loop`)
+        return BI_CMD_EXIT;
 
     case BI_CMD_DRAGON:
         print_dragon();
@@ -171,12 +175,17 @@ Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd)
                 return ERR_EXEC_CMD;
             }
         }
+        else
+        {
+            fprintf(stderr, "cd: missing argument\n");
+            return ERR_EXEC_CMD;
+        }
+        return BI_EXECUTED;
 
     default:
         return BI_NOT_BI;
     }
 }
-
 
 int alloc_cmd_buff(cmd_buff_t *cmd_buff)
 {
