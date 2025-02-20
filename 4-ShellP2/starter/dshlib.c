@@ -211,38 +211,31 @@ int clear_cmd_buff(cmd_buff_t *cmd_buff)
     return OK;
 }
 
-static char *skip_spaces(char *ptr)
+char *skip_spaces(char *string_pointer)
 {
-    while (*ptr == ' ')
-        ptr++;
-    return ptr;
+    while (*string_pointer == ' ')
+        string_pointer++;
+    return string_pointer;
 }
 
-static char *parse_argument(char *ptr, bool *in_quotes)
+char *parse_argument(char *string_pointer, bool *in_quotes)
 {
-    if (*ptr == '"')
-    {
+    if (*string_pointer == '"') {
         *in_quotes = true;
-        ptr++;
+        string_pointer++;
     }
-
-    char *arg_start = ptr;
-
-    while (*ptr && (*in_quotes || *ptr != ' '))
-    {
-        if (*ptr == '"')
-        {
-            *ptr = '\0';
+    char *arg_start = string_pointer;
+    while (*string_pointer && (*in_quotes || *string_pointer != ' ')) {
+        if (*string_pointer == '"') {
+            *string_pointer = '\0';
             *in_quotes = false;
             break;
         }
-        ptr++;
+        string_pointer++;
     }
-
-    if (*ptr)
-    {
-        *ptr = '\0';
-        ptr++;
+    if (*string_pointer) {
+        *string_pointer = '\0';
+        string_pointer++;
     }
 
     return arg_start;
