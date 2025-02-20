@@ -218,17 +218,17 @@ char *skip_spaces(char *string_pointer)
     return string_pointer;
 }
 
-char *parse_argument(char *string_pointer, bool *in_quotes)
+char *parse_argument(char *string_pointer, bool *in_string)
 {
     if (*string_pointer == '"') {
-        *in_quotes = true;
+        *in_string = true;
         string_pointer++;
     }
     char *arg_start = string_pointer;
-    while (*string_pointer && (*in_quotes || *string_pointer != ' ')) {
+    while (*string_pointer && (*in_string)|| *string_pointer != ' ') {
         if (*string_pointer == '"') {
             *string_pointer = '\0';
-            *in_quotes = false;
+            *in_string = false;
             break;
         }
         string_pointer++;
@@ -237,7 +237,6 @@ char *parse_argument(char *string_pointer, bool *in_quotes)
         *string_pointer = '\0';
         string_pointer++;
     }
-
     return arg_start;
 }
 
@@ -252,24 +251,23 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
     cmd_buff->_cmd_buffer[SH_CMD_MAX - 1] = '\0';
     cmd_buff->argc = 0;
 
-    char *ptr = cmd_buff->_cmd_buffer;
-    bool in_quotes = false;
-
-    while (*ptr)
+    char *current_pointer = cmd_buff->_cmd_buffer;
+    bool in_string = false;
+    while (*current_pointer)
     {
-        ptr = skip_spaces(ptr);
-        if (*ptr == '\0')
+        current_pointer = skip_spaces(current_pointer);
+        if (*current_pointer == '\0')
             break;
-
-        cmd_buff->argv[cmd_buff->argc++] = parse_argument(ptr, &in_quotes);
-
-        while (*ptr)
-            ptr++;
-
-        ptr++;
+        cmd_buff->argv[cmd_buff->argc++] = parse_argument(current_pointer, &in_string);
+        while (*current_pointer)
+            current_pointer++;
+        current_pointer++;
     }
-
     cmd_buff->argv[cmd_buff->argc] = NULL;
-
-    return (cmd_buff->argc > 0) ? OK : WARN_NO_CMDS;
+    if (cmd_buff->argc > 0) {
+        return OK;
+    }
+    else {
+        return WARN_NO_CMDS;
+    }
 }
