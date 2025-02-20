@@ -81,7 +81,7 @@ int exec_local_cmd_loop()
             if (exec_result == BI_CMD_EXIT)
             {
                 free_cmd_buff(&cmd_buff);
-                return OK; // Exit the shell
+                return OK_EXIT; // Exit the shell with proper return code
             }
             continue; // Skip command execution for built-in commands
         }
@@ -116,7 +116,7 @@ int exec_cmd(cmd_buff_t *cmd)
     if (pid == -1)
     {
         fprintf(stderr, "Error: Failed to fork process\n");
-        return 0;
+        return ERR_EXEC_CMD;
     }
     else if (pid == 0) // Child process
     {
@@ -132,7 +132,7 @@ int exec_cmd(cmd_buff_t *cmd)
         if (waitpid(pid, &status, 0) == -1)
         {
             fprintf(stderr, "Error: Failed to wait for child process\n");
-            return 0;
+            return ERR_EXEC_CMD;
         }
     }
     return OK;
