@@ -201,11 +201,11 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
         if (*ptr == '\0')
             break;
 
-        // Check if we encounter a quote
+        // Check for quoted string
         if (*ptr == '"')
         {
-            in_quotes = !in_quotes; // Toggle quote flag
-            ptr++;                  // Move past the quote
+            in_quotes = true;
+            ptr++; // Move past the opening quote
         }
 
         cmd_buff->argv[cmd_buff->argc++] = ptr;
@@ -214,7 +214,11 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
         while (*ptr && (in_quotes || *ptr != ' '))
         {
             if (*ptr == '"')
-                in_quotes = !in_quotes; // Handle nested quotes
+            {
+                *ptr = '\0'; // Null-terminate and remove the ending quote
+                in_quotes = false;
+                break;
+            }
             ptr++;
         }
 
