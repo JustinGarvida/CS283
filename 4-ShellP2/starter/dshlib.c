@@ -115,26 +115,23 @@ int exec_local_cmd_loop()
 
 int exec_cmd(cmd_buff_t *cmd)
 {
-    pid_t pid = fork();
-    if (pid == -1)
+    int process_id = fork();
+    if (process_id == -1)
     {
-        fprintf(stderr, "Error: Failed to fork process\n");
         return ERR_EXEC_CMD;
     }
-    else if (pid == 0) // Child process
+    else if (process_id == 0)
     {
         if (execvp(cmd->argv[0], cmd->argv) == -1)
         {
-            perror("execvp"); // Print execution failure message
-            exit(EXIT_FAILURE);
+            return ERR_EXEC_CMD;
         }
     }
-    else // Parent process
+    else
     {
         int status;
-        if (waitpid(pid, &status, 0) == -1)
+        if (waitpid(process_id, &status, 0) == -1)
         {
-            fprintf(stderr, "Error: Failed to wait for child process\n");
             return ERR_EXEC_CMD;
         }
     }
@@ -149,15 +146,13 @@ Built_In_Cmds match_command(const char *input)
         return BI_CMD_DRAGON;
     if (strcmp(input, "cd") == 0)
         return BI_CMD_CD;
-
-    return BI_NOT_BI; // Not a built-in command
+    return BI_NOT_BI;
 }
 
 Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd)
 {
-    Built_In_Cmds cmd_type = match_command(cmd->argv[0]);
-
-    switch (cmd_type)
+    Built_In_Cmds command_inputted = match_command(cmd->argv[0]);
+    switch (command_inputted)
     {
     case BI_CMD_EXIT:
         return BI_CMD_EXIT;
@@ -165,14 +160,11 @@ Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd)
     case BI_CMD_DRAGON:
         print_dragon();
         return BI_EXECUTED;
-
     case BI_CMD_CD:
-        if (cmd->argc > 1)
-        {
+        if (cmd->argc > 1) {
             chdir(cmd->argv[1]);
         }
         return BI_EXECUTED;
-
     default:
         return BI_NOT_BI;
     }
@@ -219,6 +211,43 @@ int clear_cmd_buff(cmd_buff_t *cmd_buff)
     return OK;
 }
 
+static char *skip_spaces(char *ptr)
+{
+    while (*ptr == ' ')
+        ptr++;
+    return ptr;
+}
+
+static char *parse_argument(char *ptr, bool *in_quotes)
+{
+    if (*ptr == '"')
+    {
+        *in_quotes = true;
+        ptr++;
+    }
+
+    char *arg_start = ptr;
+
+    while (*ptr && (*in_quotes || *ptr != ' '))
+    {
+        if (*ptr == '"')
+        {
+            *ptr = '\0';
+            *in_quotes = false;
+            break;
+        }
+        ptr++;
+    }
+
+    if (*ptr)
+    {
+        *ptr = '\0';
+        ptr++;
+    }
+
+    return arg_start;
+}
+
 int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
 {
     if (!cmd_line || !cmd_buff || !cmd_buff->_cmd_buffer)
@@ -235,39 +264,16 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
 
     while (*ptr)
     {
-        // Skip leading spaces
-        while (*ptr == ' ' && !in_quotes)
-            ptr++;
-
+        ptr = skip_spaces(ptr);
         if (*ptr == '\0')
             break;
 
-        // Check for quoted string
-        if (*ptr == '"')
-        {
-            in_quotes = true;
-            ptr++; // Move past the opening quote
-        }
+        cmd_buff->argv[cmd_buff->argc++] = parse_argument(ptr, &in_quotes);
 
-        cmd_buff->argv[cmd_buff->argc++] = ptr;
-
-        // Move to the next space or closing quote
-        while (*ptr && (in_quotes || *ptr != ' '))
-        {
-            if (*ptr == '"')
-            {
-                *ptr = '\0'; // Null-terminate and remove the ending quote
-                in_quotes = false;
-                break;
-            }
+        while (*ptr)
             ptr++;
-        }
 
-        if (*ptr)
-        {
-            *ptr = '\0'; // Null terminate this argument
-            ptr++;
-        }
+        ptr++;
     }
 
     cmd_buff->argv[cmd_buff->argc] = NULL;
