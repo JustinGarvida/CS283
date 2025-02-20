@@ -189,12 +189,42 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
     cmd_buff->_cmd_buffer[SH_CMD_MAX - 1] = '\0';
     cmd_buff->argc = 0;
 
-    char *token = strtok(cmd_buff->_cmd_buffer, " ");
-    while (token != NULL && cmd_buff->argc < CMD_ARGV_MAX - 1)
+    char *ptr = cmd_buff->_cmd_buffer;
+    bool in_quotes = false;
+
+    while (*ptr)
     {
-        cmd_buff->argv[cmd_buff->argc++] = token;
-        token = strtok(NULL, " ");
+        // Skip leading spaces
+        while (*ptr == ' ' && !in_quotes)
+            ptr++;
+
+        if (*ptr == '\0')
+            break;
+
+        // Check if we encounter a quote
+        if (*ptr == '"')
+        {
+            in_quotes = !in_quotes; // Toggle quote flag
+            ptr++;                  // Move past the quote
+        }
+
+        cmd_buff->argv[cmd_buff->argc++] = ptr;
+
+        // Move to the next space or closing quote
+        while (*ptr && (in_quotes || *ptr != ' '))
+        {
+            if (*ptr == '"')
+                in_quotes = !in_quotes; // Handle nested quotes
+            ptr++;
+        }
+
+        if (*ptr)
+        {
+            *ptr = '\0'; // Null terminate this argument
+            ptr++;
+        }
     }
+
     cmd_buff->argv[cmd_buff->argc] = NULL;
 
     return (cmd_buff->argc > 0) ? OK : WARN_NO_CMDS;
