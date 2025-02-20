@@ -61,6 +61,7 @@ int exec_local_cmd_loop()
         fprintf(stderr, "Error: Failed to allocate memory\n");
         return ERR_MEMORY;
     }
+
     while (1)
     {
         printf("%s", SH_PROMPT);
@@ -71,40 +72,21 @@ int exec_local_cmd_loop()
         }
         cmd_buff._cmd_buffer[strcspn(cmd_buff._cmd_buffer, "\n")] = '\0'; // Remove newline
 
-        // Exit command
-        if (strcmp(cmd_buff._cmd_buffer, EXIT_CMD) == 0)
-        {
-            free_cmd_buff(&cmd_buff);
-            return OK;
-        }
+        // Check if input is a built-in command
+        Built_In_Cmds cmd_type = match_command(cmd_buff._cmd_buffer);
 
-        // Easter egg command (optional)
-        if (strcmp(cmd_buff._cmd_buffer, "dragon") == 0)
+        if (cmd_type != BI_NOT_BI) // If it's a built-in command
         {
-            print_dragon();
-            continue;
-        }
-
-        // Handle 'cd' command properly
-        if (strncmp(cmd_buff._cmd_buffer, "cd", 2) == 0)
-        {
-            char *dir = cmd_buff._cmd_buffer + 2; // Skip "cd"
-            while (*dir == ' ')
-                dir++; // Trim leading spaces
-
-            if (*dir == '\0') // If no directory is provided, go to HOME
+            Built_In_Cmds exec_result = exec_built_in_cmd(&cmd_buff);
+            if (exec_result == BI_CMD_EXIT)
             {
-                dir = getenv("HOME");
+                free_cmd_buff(&cmd_buff);
+                return OK; // Exit the shell
             }
-
-            if (chdir(dir) != 0)
-            {
-                perror("cd"); // Print error if directory change fails
-            }
-            continue;
+            continue; // Skip command execution for built-in commands
         }
 
-        // Build command buffer
+        // If not a built-in command, execute as external command
         rc = build_cmd_buff(cmd_buff._cmd_buffer, &cmd_buff);
         if (rc == WARN_NO_CMDS)
         {
@@ -117,34 +99,93 @@ int exec_local_cmd_loop()
             break;
         }
 
-        // Fork and execute command
-        pid_t pid = fork();
-        if (pid == -1)
+        rc = exec_cmd(&cmd_buff); // Execute non-built-in commands
+        if (rc != OK)
         {
-            fprintf(stderr, "Error: Failed to fork process\n");
-            break;
-        }
-        else if (pid == 0) // Child process
-        {
-            if (execvp(cmd_buff.argv[0], cmd_buff.argv) == -1)
-            {
-                perror("execvp"); // Print execution failure message
-                exit(EXIT_FAILURE);
-            }
-        }
-        else // Parent process
-        {
-            int status;
-            if (waitpid(pid, &status, 0) == -1)
-            {
-                fprintf(stderr, "Error: Failed to wait for child process\n");
-            }
+            fprintf(stderr, "Error: Failed to execute command\n");
         }
     }
 
     free_cmd_buff(&cmd_buff);
     return OK;
 }
+
+int exec_cmd(cmd_buff_t *cmd)
+{
+    pid_t pid = fork();
+    if (pid == -1)
+    {
+        fprintf(stderr, "Error: Failed to fork process\n");
+        return 0;
+    }
+    else if (pid == 0) // Child process
+    {
+        if (execvp(cmd->argv[0], cmd->argv) == -1)
+        {
+            perror("execvp"); // Print execution failure message
+            exit(EXIT_FAILURE);
+        }
+    }
+    else // Parent process
+    {
+        int status;
+        if (waitpid(pid, &status, 0) == -1)
+        {
+            fprintf(stderr, "Error: Failed to wait for child process\n");
+            return 0;
+        }
+    }
+    return OK;
+}
+
+Built_In_Cmds match_command(const char *input)
+{
+    if (strcmp(input, "exit") == 0)
+        return BI_CMD_EXIT;
+    if (strcmp(input, "dragon") == 0)
+        return BI_CMD_DRAGON;
+    if (strncmp(input, "cd", 2) == 0)
+        return BI_CMD_CD;
+
+    return BI_NOT_BI; // Not a built-in command
+}
+
+Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd)
+{
+    Built_In_Cmds cmd_type = match_command(cmd->_cmd_buffer);
+
+    switch (cmd_type)
+    {
+    case BI_CMD_EXIT:
+        return BI_CMD_EXIT; // Exit command (handled in `exec_local_cmd_loop`)
+
+    case BI_CMD_DRAGON:
+        print_dragon();
+        return BI_EXECUTED;
+
+    case BI_CMD_CD:
+    {
+        char *dir = cmd->_cmd_buffer + 2; // Skip "cd"
+        while (*dir == ' ')
+            dir++; // Trim leading spaces
+
+        if (*dir == '\0') // If no directory is provided, go to HOME
+        {
+            dir = getenv("HOME");
+        }
+
+        if (chdir(dir) != 0)
+        {
+            perror("cd"); // Print error if directory change fails
+        }
+        return BI_EXECUTED;
+    }
+
+    default:
+        return BI_NOT_BI;
+    }
+}
+
 
 int alloc_cmd_buff(cmd_buff_t *cmd_buff)
 {
