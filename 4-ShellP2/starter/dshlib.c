@@ -70,23 +70,22 @@ int exec_local_cmd_loop()
             printf("\n");
             break;
         }
-        cmd_buff._cmd_buffer[strcspn(cmd_buff._cmd_buffer, "\n")] = '\0'; // Remove newline
-
-        // Check if input is a built-in command
+        cmd_buff._cmd_buffer[strcspn(cmd_buff._cmd_buffer, "\n")] = '\0';
         Built_In_Cmds cmd_type = match_command(cmd_buff._cmd_buffer);
 
-        if (cmd_type != BI_NOT_BI) // If it's a built-in command
+        // Handle Built-In Commands
+        if (cmd_type != BI_NOT_BI)
         {
             Built_In_Cmds exec_result = exec_built_in_cmd(&cmd_buff);
             if (exec_result == BI_CMD_EXIT)
             {
                 free_cmd_buff(&cmd_buff);
-                return OK_EXIT; // Exit the shell with proper return code
+                return OK_EXIT;
             }
-            continue; // Skip command execution for built-in commands
+            continue;
         }
 
-        // If not a built-in command, execute as external command
+        // Handle External Commands
         rc = build_cmd_buff(cmd_buff._cmd_buffer, &cmd_buff);
         if (rc == WARN_NO_CMDS)
         {
@@ -164,22 +163,14 @@ Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd)
         return BI_EXECUTED;
 
     case BI_CMD_CD:
-    {
-        char *dir = cmd->_cmd_buffer + 2; // Skip "cd"
-        while (*dir == ' ')
-            dir++; // Trim leading spaces
-
-        if (*dir == '\0') // If no directory is provided, go to HOME
+        if (cmd->argc > 1)
         {
-            dir = getenv("HOME");
+            if (chdir(cmd->argv[1]) != 0)
+            {
+                perror("cd failed");
+                return ERR_EXEC_CMD;
+            }
         }
-
-        if (chdir(dir) != 0)
-        {
-            perror("cd"); // Print error if directory change fails
-        }
-        return BI_EXECUTED;
-    }
 
     default:
         return BI_NOT_BI;
