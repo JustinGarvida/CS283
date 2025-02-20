@@ -69,34 +69,42 @@ int exec_local_cmd_loop()
             printf("\n");
             break;
         }
-        cmd_buff._cmd_buffer[strcspn(cmd_buff._cmd_buffer, "\n")] = '\0';
+        cmd_buff._cmd_buffer[strcspn(cmd_buff._cmd_buffer, "\n")] = '\0'; // Remove newline
 
+        // Exit command
         if (strcmp(cmd_buff._cmd_buffer, EXIT_CMD) == 0)
         {
             free_cmd_buff(&cmd_buff);
             return OK;
         }
 
+        // Easter egg command (optional)
         if (strcmp(cmd_buff._cmd_buffer, "dragon") == 0)
         {
             print_dragon();
             continue;
         }
 
+        // Handle 'cd' command properly
         if (strncmp(cmd_buff._cmd_buffer, "cd", 2) == 0)
         {
-            char *dir = strtok(cmd_buff._cmd_buffer + 2, " ");
-            if (!dir)
+            char *dir = cmd_buff._cmd_buffer + 2; // Skip "cd"
+            while (*dir == ' ')
+                dir++; // Trim leading spaces
+
+            if (*dir == '\0') // If no directory is provided, go to HOME
             {
                 dir = getenv("HOME");
             }
+
             if (chdir(dir) != 0)
             {
-                perror("cd");
+                perror("cd"); // Print error if directory change fails
             }
             continue;
         }
 
+        // Build command buffer
         rc = build_cmd_buff(cmd_buff._cmd_buffer, &cmd_buff);
         if (rc == WARN_NO_CMDS)
         {
@@ -109,21 +117,22 @@ int exec_local_cmd_loop()
             break;
         }
 
+        // Fork and execute command
         pid_t pid = fork();
         if (pid == -1)
         {
             fprintf(stderr, "Error: Failed to fork process\n");
             break;
         }
-        else if (pid == 0)
+        else if (pid == 0) // Child process
         {
             if (execvp(cmd_buff.argv[0], cmd_buff.argv) == -1)
             {
-                // fprintf(stderr, CMD_ERR_EXECUTE);
+                perror("execvp"); // Print execution failure message
                 exit(EXIT_FAILURE);
             }
         }
-        else
+        else // Parent process
         {
             int status;
             if (waitpid(pid, &status, 0) == -1)
