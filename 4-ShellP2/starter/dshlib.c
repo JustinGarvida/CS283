@@ -169,16 +169,7 @@ Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd)
     case BI_CMD_CD:
         if (cmd->argc > 1)
         {
-            if (chdir(cmd->argv[1]) != 0)
-            {
-                perror("cd failed");
-                return ERR_EXEC_CMD;
-            }
-        }
-        else
-        {
-            fprintf(stderr, "cd: missing argument\n");
-            return ERR_EXEC_CMD;
+            chdir(cmd->argv[1]);
         }
         return BI_EXECUTED;
 
