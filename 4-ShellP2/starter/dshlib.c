@@ -225,7 +225,8 @@ char *parse_argument(char *string_pointer, bool *in_string)
         string_pointer++;
     }
     char *arg_start = string_pointer;
-    while (*string_pointer && (*in_string)|| *string_pointer != ' ') {
+    while ((*string_pointer && *in_string) || (*string_pointer != ' '))
+    {
         if (*string_pointer == '"') {
             *string_pointer = '\0';
             *in_string = false;
