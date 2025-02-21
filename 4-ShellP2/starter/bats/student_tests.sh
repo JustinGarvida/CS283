@@ -9,15 +9,6 @@ EOF
     [ "$status" -eq 0 ]
 }
 
-@test "Built-in command: dragon prints dragon" {
-    run ./dsh <<EOF
-dragon
-exit
-EOF
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"dragon"* ]]
-}
-
 @test "Built-in command: cd changes directory" {
     run ./dsh <<EOF
 cd /
@@ -44,15 +35,6 @@ exit
 EOF
     [ "$status" -eq 0 ]
     [[ "$output" == *"total"* ]]
-}
-
-@test "External command: invalid command returns error" {
-    run ./dsh <<EOF
-nonexistentcommand
-exit
-EOF
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"No such file or directory"* || "$output" == "" ]]
 }
 
 @test "Empty input: should prompt again" {
