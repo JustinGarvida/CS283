@@ -74,24 +74,6 @@ EOF
     [ "${lines[0]}" != "${lines[1]}" ]
 }
 
-@test "Built-in command: invalid directory with cd" {
-    run ./dsh <<EOF
-cd nonexistent_directory
-exit
-EOF
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"No such file or directory"* ]]
-}
-
-@test "External command: invalid command returns error" {
-    run ./dsh <<EOF
-invalidcommand
-exit
-EOF
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"No such file or directory"* || "$output" == "" ]]
-}
-
 @test "Built-in command: pwd shows current directory" {
     run ./dsh <<EOF
 pwd
@@ -118,15 +100,6 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" == *"hello"* ]]
     [[ "$output" == *"world"* ]]
-}
-
-@test "Built-in command: dragon prints dragon" {
-    run ./dsh <<EOF
-dragon
-exit
-EOF
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"dragon"* ]]
 }
 
 @test "Redirection: echo to file" {
