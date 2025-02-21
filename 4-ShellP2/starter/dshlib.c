@@ -52,44 +52,33 @@
  *      fork(), execvp(), exit(), chdir()
  */
 
-int exec_local_cmd_loop()
-{
+int exec_local_cmd_loop() {
     cmd_buff_t cmd_buff;
     int rc = alloc_cmd_buff(&cmd_buff);
-    if (rc != OK)
-    {
+    if (rc != OK) {
         fprintf(stderr, "Error: Failed to allocate memory\n");
         return ERR_MEMORY;
     }
 
-    while (1)
-    {
+    while (1) {
         printf("%s", SH_PROMPT);
         if (fgets(cmd_buff._cmd_buffer, SH_CMD_MAX, stdin) == NULL)
         {
             printf("\n");
             break;
         }
-
         cmd_buff._cmd_buffer[strcspn(cmd_buff._cmd_buffer, "\n")] = '\0';
-
-        // Parse command and arguments FIRST
         rc = build_cmd_buff(cmd_buff._cmd_buffer, &cmd_buff);
-        if (rc == WARN_NO_CMDS)
-        {
+        if (rc == WARN_NO_CMDS) {
             fprintf(stderr, CMD_WARN_NO_CMD);
             continue;
         }
-        else if (rc == ERR_MEMORY)
-        {
+        else if (rc == ERR_MEMORY) {
             fprintf(stderr, "Error: Command buffer memory allocation failed\n");
             break;
         }
-
-        // Match built-in commands using parsed argv[0]
         Built_In_Cmds cmd_type = match_command(cmd_buff.argv[0]);
 
-        // Handle Built-In Commands
         if (cmd_type != BI_NOT_BI)
         {
             Built_In_Cmds exec_result = exec_built_in_cmd(&cmd_buff);
@@ -100,15 +89,11 @@ int exec_local_cmd_loop()
             }
             continue;
         }
-
-        // Handle External Commands
         rc = exec_cmd(&cmd_buff);
-        if (rc != OK)
-        {
-            // fprintf(stderr, CMD_ERR_EXECUTE);
+        if (rc != OK) {
+            return ERR_EXEC_CMD;
         }
     }
-
     free_cmd_buff(&cmd_buff);
     return OK;
 }
@@ -116,30 +101,24 @@ int exec_local_cmd_loop()
 int exec_cmd(cmd_buff_t *cmd)
 {
     int process_id = fork();
-    if (process_id == -1)
-    {
+    if (process_id == -1) {
         return ERR_EXEC_CMD;
     }
-    else if (process_id == 0)
-    {
-        if (execvp(cmd->argv[0], cmd->argv) == -1)
-        {
+    else if (process_id == 0) {
+        if (execvp(cmd->argv[0], cmd->argv) == -1) {
             return ERR_EXEC_CMD;
         }
     }
-    else
-    {
+    else {
         int status;
-        if (waitpid(process_id, &status, 0) == -1)
-        {
+        if (waitpid(process_id, &status, 0) == -1) {
             return ERR_EXEC_CMD;
         }
     }
     return OK;
 }
 
-Built_In_Cmds match_command(const char *input)
-{
+Built_In_Cmds match_command(const char *input) {
     if (strcmp(input, "exit") == 0)
         return BI_CMD_EXIT;
     if (strcmp(input, "dragon") == 0)
@@ -149,11 +128,9 @@ Built_In_Cmds match_command(const char *input)
     return BI_NOT_BI;
 }
 
-Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd)
-{
+Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd) {
     Built_In_Cmds command_inputted = match_command(cmd->argv[0]);
-    switch (command_inputted)
-    {
+    switch (command_inputted) {
     case BI_CMD_EXIT:
         return BI_CMD_EXIT;
 
@@ -170,15 +147,12 @@ Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd)
     }
 }
 
-int alloc_cmd_buff(cmd_buff_t *cmd_buff)
-{
-    if (!cmd_buff)
-    {
+int alloc_cmd_buff(cmd_buff_t *cmd_buff) {
+    if (!cmd_buff) {
         return ERR_MEMORY;
     }
     cmd_buff->_cmd_buffer = malloc(SH_CMD_MAX);
-    if (!cmd_buff->_cmd_buffer)
-    {
+    if (!cmd_buff->_cmd_buffer) {
         return ERR_MEMORY;
     }
     cmd_buff->argc = 0;
@@ -186,10 +160,8 @@ int alloc_cmd_buff(cmd_buff_t *cmd_buff)
     return OK;
 }
 
-int free_cmd_buff(cmd_buff_t *cmd_buff)
-{
-    if (!cmd_buff || !cmd_buff->_cmd_buffer)
-    {
+int free_cmd_buff(cmd_buff_t *cmd_buff) {
+    if (!cmd_buff || !cmd_buff->_cmd_buffer) {
         return ERR_MEMORY;
     }
     free(cmd_buff->_cmd_buffer);
@@ -199,10 +171,8 @@ int free_cmd_buff(cmd_buff_t *cmd_buff)
     return OK;
 }
 
-int clear_cmd_buff(cmd_buff_t *cmd_buff)
-{
-    if (!cmd_buff || !cmd_buff->_cmd_buffer)
-    {
+int clear_cmd_buff(cmd_buff_t *cmd_buff) {
+    if (!cmd_buff || !cmd_buff->_cmd_buffer) {
         return ERR_MEMORY;
     }
     memset(cmd_buff->_cmd_buffer, 0, SH_CMD_MAX);
@@ -211,15 +181,13 @@ int clear_cmd_buff(cmd_buff_t *cmd_buff)
     return OK;
 }
 
-char *skip_spaces(char *string_pointer)
-{
+char *skip_spaces(char *string_pointer) {
     while (*string_pointer == ' ')
         string_pointer++;
     return string_pointer;
 }
 
-char *parse_argument(char *string_pointer, bool *in_string)
-{
+char *parse_argument(char *string_pointer, bool *in_string) {
     if (*string_pointer == '"') {
         *in_string = true;
         string_pointer++;
@@ -241,8 +209,7 @@ char *parse_argument(char *string_pointer, bool *in_string)
     return arg_start;
 }
 
-int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
-{
+int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff) {
     if (!cmd_line || !cmd_buff || !cmd_buff->_cmd_buffer)
     {
         return ERR_MEMORY;
