@@ -87,6 +87,61 @@ int exec_piped_commands(command_list_t *clist)
     return OK;
 }
 
+int build_cmd_list(char *cmd_line, command_list_t *clist)
+{
+    if (cmd_line == NULL || clist == NULL)
+    {
+        return WARN_NO_CMDS;
+    }
+    memset(clist, 0, sizeof(command_list_t));
+
+    char *command = strtok(cmd_line, PIPE_STRING);
+    int command_count = 0;
+
+    if (command == NULL)
+    {
+        return WARN_NO_CMDS;
+    }
+
+    while (command != NULL)
+    {
+        if (command_count >= CMD_MAX)
+        {
+            return ERR_TOO_MANY_COMMANDS;
+        }
+
+        while (*command == SPACE_CHAR)
+        {
+            command++;
+        }
+
+        if (strlen(command) >= ARG_MAX)
+        {
+            return ERR_CMD_OR_ARGS_TOO_BIG;
+        }
+
+        cmd_buff_t *cmd = &clist->commands[command_count];
+        cmd->_cmd_buffer = strdup(command); // Copy command line for tokenization
+
+        int arg_count = 0;
+        char *token = strtok(cmd->_cmd_buffer, " ");
+        while (token != NULL && arg_count < CMD_ARGV_MAX - 1)
+        {
+            cmd->argv[arg_count] = token;
+            arg_count++;
+            token = strtok(NULL, " ");
+        }
+        cmd->argv[arg_count] = NULL; // Null-terminate argv
+        cmd->argc = arg_count;
+
+        command_count++;
+        command = strtok(NULL, PIPE_STRING);
+    }
+
+    clist->num = command_count;
+    return OK;
+}
+
 int exec_local_cmd_loop()
 {
     cmd_buff_t cmd_buff;
