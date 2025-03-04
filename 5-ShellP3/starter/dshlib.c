@@ -8,6 +8,95 @@
 #include <sys/wait.h>
 #include "dshlib.h"
 
+// Structure to hold command and its arguments
+typedef struct
+{
+    char **args;
+} Command;
+
+void execute_pipeline(Command commands[], int num_commands)
+{
+    int pipes[num_commands - 1][2]; // Array of pipes
+    pid_t pids[num_commands];       // Array to store process IDs
+
+    // Create all necessary pipes
+    for (int i = 0; i < num_commands - 1; i++)
+    {
+        if (pipe(pipes[i]) == -1)
+        {
+            exit(ERR_EXEC_CMD);
+        }
+    }
+
+    // Create processes for each command
+    for (int i = 0; i < num_commands; i++)
+    {
+        pids[i] = fork();
+        if (pids[i] == -1)
+        {
+            exit(ERR_EXEC_CMD);
+        }
+
+        if (pids[i] == 0)
+        { // Child process
+            if (i > 0)
+            {
+                dup2(pipes[i - 1][0], STDIN_FILENO);
+            }
+            if (i < num_commands - 1)
+            {
+                dup2(pipes[i][1], STDOUT_FILENO);
+            }
+            for (int j = 0; j < num_commands - 1; j++)
+            {
+                close(pipes[j][0]);
+                close(pipes[j][1]);
+            }
+            execvp(commands[i].args[0], commands[i].args);
+            exit(ERR_EXEC_CMD);
+        }
+    }
+
+    // Parent process: close all pipe ends
+    for (int i = 0; i < num_commands - 1; i++)
+    {
+        close(pipes[i][0]);
+        close(pipes[i][1]);
+    }
+
+    // Wait for all children
+    for (int i = 0; i < num_commands; i++)
+    {
+        waitpid(pids[i], NULL, 0);
+    }
+}
+
+int exec_piped_commands(command_list_t *clist)
+{
+    int num_cmds = clist->num;
+    Command commands[num_cmds];
+
+    for (int i = 0; i < num_cmds; i++)
+    {
+        commands[i].args = clist->commands[i].argv;
+    }
+
+    pid_t supervisor = fork();
+    if (supervisor == -1)
+    {
+        return ERR_EXEC_CMD;
+    }
+
+    if (supervisor == 0)
+    { // Supervisor process
+        execute_pipeline(commands, num_cmds);
+        exit(EXIT_SUCCESS);
+    }
+
+    waitpid(supervisor, NULL, 0);
+    return OK;
+}
+
 int exec_local_cmd_loop()
 {
     cmd_buff_t cmd_buff;
@@ -45,68 +134,10 @@ int exec_local_cmd_loop()
     return OK;
 }
 
-int exec_piped_commands(command_list_t *clist)
-{
-    int num_cmds = clist->num;
-    int pipes[num_cmds - 1][2];
-    pid_t pids[num_cmds];
-
-    for (int i = 0; i < num_cmds - 1; i++)
-    {
-        if (pipe(pipes[i]) == -1)
-        {
-            return ERR_EXEC_CMD;
-        }
-    }
-
-    for (int i = 0; i < num_cmds; i++)
-    {
-        pids[i] = fork();
-        if (pids[i] == -1)
-        {
-            return ERR_EXEC_CMD;
-        }
-
-        if (pids[i] == 0)
-        {
-            if (i > 0)
-            {
-                dup2(pipes[i - 1][0], STDIN_FILENO);
-            }
-            if (i < num_cmds - 1)
-            {
-                dup2(pipes[i][1], STDOUT_FILENO);
-            }
-            for (int j = 0; j < num_cmds - 1; j++)
-            {
-                close(pipes[j][0]);
-                close(pipes[j][1]);
-            }
-            execvp(clist->commands[i].argv[0], clist->commands[i].argv);
-            exit(ERR_EXEC_CMD);
-        }
-    }
-
-    for (int i = 0; i < num_cmds - 1; i++)
-    {
-        close(pipes[i][0]);
-        close(pipes[i][1]);
-    }
-
-    for (int i = 0; i < num_cmds; i++)
-    {
-        waitpid(pids[i], NULL, 0);
-    }
-
-    return OK;
-}
-
 Built_In_Cmds match_command(const char *input)
 {
     if (strcmp(input, "exit") == 0)
         return BI_CMD_EXIT;
-    if (strcmp(input, "dragon") == 0)
-        return BI_CMD_DRAGON;
     if (strcmp(input, "cd") == 0)
         return BI_CMD_CD;
     return BI_NOT_BI;
@@ -119,8 +150,6 @@ Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd)
     {
     case BI_CMD_EXIT:
         return OK_EXIT;
-    case BI_CMD_DRAGON:
-        return BI_EXECUTED;
     case BI_CMD_CD:
         if (cmd->argc > 1)
         {
