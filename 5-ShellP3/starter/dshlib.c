@@ -14,16 +14,13 @@ int exec_local_cmd_loop()
     int rc = alloc_cmd_buff(&cmd_buff);
     if (rc != OK)
     {
-        fprintf(stderr, "Error: Failed to allocate memory\n");
         return ERR_MEMORY;
     }
 
     while (1)
     {
-        printf("%s", SH_PROMPT);
         if (fgets(cmd_buff._cmd_buffer, SH_CMD_MAX, stdin) == NULL)
         {
-            printf("\n");
             break;
         }
         cmd_buff._cmd_buffer[strcspn(cmd_buff._cmd_buffer, "\n")] = '\0';
@@ -31,22 +28,16 @@ int exec_local_cmd_loop()
         // Parse the command buffer into command list (handling pipes)
         command_list_t clist;
         rc = build_cmd_list(cmd_buff._cmd_buffer, &clist);
-        if (rc == WARN_NO_CMDS)
+        if (rc != OK)
         {
-            fprintf(stderr, CMD_WARN_NO_CMD);
-            continue;
-        }
-        else if (rc == ERR_TOO_MANY_COMMANDS)
-        {
-            fprintf(stderr, CMD_ERR_PIPE_LIMIT);
-            continue;
+            return rc;
         }
 
         // Execute commands with piping
         rc = exec_piped_commands(&clist);
         if (rc != OK)
         {
-            // fprintf(stderr, CMD_ERR_EXECUTE);
+            return rc;
         }
     }
 
@@ -60,62 +51,48 @@ int exec_piped_commands(command_list_t *clist)
     int pipes[num_cmds - 1][2];
     pid_t pids[num_cmds];
 
-    // Create pipes
     for (int i = 0; i < num_cmds - 1; i++)
     {
         if (pipe(pipes[i]) == -1)
         {
-            perror("pipe");
             return ERR_EXEC_CMD;
         }
     }
 
-    // Fork processes for each command
     for (int i = 0; i < num_cmds; i++)
     {
         pids[i] = fork();
         if (pids[i] == -1)
         {
-            perror("fork");
             return ERR_EXEC_CMD;
         }
 
         if (pids[i] == 0)
-        { // Child process
-            // Redirect input if not the first command
+        {
             if (i > 0)
             {
                 dup2(pipes[i - 1][0], STDIN_FILENO);
             }
-
-            // Redirect output if not the last command
             if (i < num_cmds - 1)
             {
                 dup2(pipes[i][1], STDOUT_FILENO);
             }
-
-            // Close all pipes in child
             for (int j = 0; j < num_cmds - 1; j++)
             {
                 close(pipes[j][0]);
                 close(pipes[j][1]);
             }
-
-            // Execute command using argv[0] as the executable
             execvp(clist->commands[i].argv[0], clist->commands[i].argv);
-            perror("execvp");
-            exit(EXIT_FAILURE);
+            exit(ERR_EXEC_CMD);
         }
     }
 
-    // Close pipes in parent
     for (int i = 0; i < num_cmds - 1; i++)
     {
         close(pipes[i][0]);
         close(pipes[i][1]);
     }
 
-    // Wait for all child processes
     for (int i = 0; i < num_cmds; i++)
     {
         waitpid(pids[i], NULL, 0);
@@ -124,7 +101,6 @@ int exec_piped_commands(command_list_t *clist)
     return OK;
 }
 
-// Match built-in commands like "exit" and "cd"
 Built_In_Cmds match_command(const char *input)
 {
     if (strcmp(input, "exit") == 0)
@@ -136,16 +112,14 @@ Built_In_Cmds match_command(const char *input)
     return BI_NOT_BI;
 }
 
-// Execute built-in commands
 Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd)
 {
     Built_In_Cmds cmd_type = match_command(cmd->argv[0]);
     switch (cmd_type)
     {
     case BI_CMD_EXIT:
-        return BI_CMD_EXIT;
+        return OK_EXIT;
     case BI_CMD_DRAGON:
-        print_dragon();
         return BI_EXECUTED;
     case BI_CMD_CD:
         if (cmd->argc > 1)
@@ -158,7 +132,6 @@ Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd)
     }
 }
 
-// Allocate memory for command buffer
 int alloc_cmd_buff(cmd_buff_t *cmd_buff)
 {
     if (!cmd_buff)
@@ -175,7 +148,6 @@ int alloc_cmd_buff(cmd_buff_t *cmd_buff)
     return OK;
 }
 
-// Free allocated command buffer
 int free_cmd_buff(cmd_buff_t *cmd_buff)
 {
     if (!cmd_buff || !cmd_buff->_cmd_buffer)
@@ -189,27 +161,25 @@ int free_cmd_buff(cmd_buff_t *cmd_buff)
     return OK;
 }
 
-// Parse input to extract arguments
 int build_cmd_list(char *cmd_line, command_list_t *clist)
 {
     if (!cmd_line || !clist)
     {
         return ERR_MEMORY;
     }
-
     char *token = strtok(cmd_line, "|");
     int count = 0;
 
     while (token != NULL)
     {
         while (*token == ' ')
-            token++; // Trim leading spaces
+            token++;
         if (strlen(token) >= ARG_MAX)
         {
             return ERR_CMD_OR_ARGS_TOO_BIG;
         }
 
-        clist->commands[count].argv[0] = strtok(token, " "); // First token is the executable
+        clist->commands[count].argv[0] = strtok(token, " ");
         int i = 1;
         while ((clist->commands[count].argv[i] = strtok(NULL, " ")) != NULL)
         {
