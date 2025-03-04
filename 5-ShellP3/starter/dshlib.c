@@ -20,7 +20,7 @@ int execute_pipeline(command_list_t *clist)
         if (pipe(pipes[i]) == -1)
         {
             perror("pipe");
-            exit(ERR_EXEC_CMD);
+            return ERR_EXEC_CMD;
         }
     }
 
@@ -31,22 +31,19 @@ int execute_pipeline(command_list_t *clist)
         if (pids[i] == -1)
         {
             perror("fork");
-            exit(ERR_EXEC_CMD);
+            return ERR_EXEC_CMD;
         }
 
         if (pids[i] == 0)
         { // Child process
-            // Set up input pipe for all except first process
             if (i > 0)
             {
                 dup2(pipes[i - 1][0], STDIN_FILENO);
             }
-            // Set up output pipe for all except last process
             if (i < num_commands - 1)
             {
                 dup2(pipes[i][1], STDOUT_FILENO);
             }
-            // Close all pipe ends in child
             for (int j = 0; j < num_commands - 1; j++)
             {
                 close(pipes[j][0]);
@@ -58,18 +55,18 @@ int execute_pipeline(command_list_t *clist)
         }
     }
 
-    // Parent process: close all pipe ends
     for (int i = 0; i < num_commands - 1; i++)
     {
         close(pipes[i][0]);
         close(pipes[i][1]);
     }
 
-    // Wait for all children
     for (int i = 0; i < num_commands; i++)
     {
         waitpid(pids[i], NULL, 0);
     }
+
+    return OK;
 }
 
 int exec_piped_commands(command_list_t *clist)
@@ -83,11 +80,9 @@ int exec_piped_commands(command_list_t *clist)
 
     if (supervisor == 0)
     { // Supervisor process
-        execute_pipeline(clist);
-        exit(EXIT_SUCCESS);
+        exit(execute_pipeline(clist));
     }
 
-    // Main parent just waits for the supervisor
     waitpid(supervisor, NULL, 0);
     return OK;
 }
@@ -109,18 +104,18 @@ int exec_local_cmd_loop()
         }
         cmd_buff._cmd_buffer[strcspn(cmd_buff._cmd_buffer, "\n")] = '\0';
 
-        // Parse the command buffer into command list (handling pipes)
         command_list_t clist;
         rc = build_cmd_list(cmd_buff._cmd_buffer, &clist);
         if (rc != OK)
         {
+            free_cmd_buff(&cmd_buff);
             return rc;
         }
 
-        // Execute commands with piping
         rc = exec_piped_commands(&clist);
         if (rc != OK)
         {
+            free_cmd_buff(&cmd_buff);
             return rc;
         }
     }
