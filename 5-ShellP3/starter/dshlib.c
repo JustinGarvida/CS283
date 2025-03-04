@@ -8,7 +8,7 @@
 #include <sys/wait.h>
 #include "dshlib.h"
 
-void execute_pipeline(command_list_t *clist)
+int execute_pipeline(command_list_t *clist)
 {
     int num_commands = clist->num;
     int pipes[num_commands - 1][2]; // Array of pipes
