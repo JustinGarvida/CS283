@@ -8,14 +8,9 @@
 #include <sys/wait.h>
 #include "dshlib.h"
 
-// Structure to hold command and its arguments
-typedef struct
+void execute_pipeline(command_list_t *clist)
 {
-    char **args;
-} Command;
-
-void execute_pipeline(Command commands[], int num_commands)
-{
+    int num_commands = clist->num;
     int pipes[num_commands - 1][2]; // Array of pipes
     pid_t pids[num_commands];       // Array to store process IDs
 
@@ -24,6 +19,7 @@ void execute_pipeline(Command commands[], int num_commands)
     {
         if (pipe(pipes[i]) == -1)
         {
+            perror("pipe");
             exit(ERR_EXEC_CMD);
         }
     }
@@ -34,25 +30,30 @@ void execute_pipeline(Command commands[], int num_commands)
         pids[i] = fork();
         if (pids[i] == -1)
         {
+            perror("fork");
             exit(ERR_EXEC_CMD);
         }
 
         if (pids[i] == 0)
         { // Child process
+            // Set up input pipe for all except first process
             if (i > 0)
             {
                 dup2(pipes[i - 1][0], STDIN_FILENO);
             }
+            // Set up output pipe for all except last process
             if (i < num_commands - 1)
             {
                 dup2(pipes[i][1], STDOUT_FILENO);
             }
+            // Close all pipe ends in child
             for (int j = 0; j < num_commands - 1; j++)
             {
                 close(pipes[j][0]);
                 close(pipes[j][1]);
             }
-            execvp(commands[i].args[0], commands[i].args);
+            execvp(clist->commands[i].argv[0], clist->commands[i].argv);
+            perror("execvp");
             exit(ERR_EXEC_CMD);
         }
     }
@@ -73,26 +74,20 @@ void execute_pipeline(Command commands[], int num_commands)
 
 int exec_piped_commands(command_list_t *clist)
 {
-    int num_cmds = clist->num;
-    Command commands[num_cmds];
-
-    for (int i = 0; i < num_cmds; i++)
-    {
-        commands[i].args = clist->commands[i].argv;
-    }
-
     pid_t supervisor = fork();
     if (supervisor == -1)
     {
+        perror("fork supervisor");
         return ERR_EXEC_CMD;
     }
 
     if (supervisor == 0)
     { // Supervisor process
-        execute_pipeline(commands, num_cmds);
+        execute_pipeline(clist);
         exit(EXIT_SUCCESS);
     }
 
+    // Main parent just waits for the supervisor
     waitpid(supervisor, NULL, 0);
     return OK;
 }
@@ -187,42 +182,5 @@ int free_cmd_buff(cmd_buff_t *cmd_buff)
     cmd_buff->_cmd_buffer = NULL;
     cmd_buff->argc = 0;
     memset(cmd_buff->argv, 0, sizeof(cmd_buff->argv));
-    return OK;
-}
-
-int build_cmd_list(char *cmd_line, command_list_t *clist)
-{
-    if (!cmd_line || !clist)
-    {
-        return ERR_MEMORY;
-    }
-    char *token = strtok(cmd_line, "|");
-    int count = 0;
-
-    while (token != NULL)
-    {
-        while (*token == ' ')
-            token++;
-        if (strlen(token) >= ARG_MAX)
-        {
-            return ERR_CMD_OR_ARGS_TOO_BIG;
-        }
-
-        clist->commands[count].argv[0] = strtok(token, " ");
-        int i = 1;
-        while ((clist->commands[count].argv[i] = strtok(NULL, " ")) != NULL)
-        {
-            i++;
-        }
-        clist->commands[count].argv[i] = NULL;
-        count++;
-
-        token = strtok(NULL, "|");
-        if (count >= CMD_MAX)
-        {
-            return ERR_TOO_MANY_COMMANDS;
-        }
-    }
-    clist->num = count;
     return OK;
 }
