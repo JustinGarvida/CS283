@@ -52,7 +52,6 @@ void execute_pipeline(Command commands[], int num_commands)
                 close(pipes[j][0]);
                 close(pipes[j][1]);
             }
-            fflush(stdout); // Ensure output is properly flushed before exec
             execvp(commands[i].args[0], commands[i].args);
             exit(ERR_EXEC_CMD);
         }
