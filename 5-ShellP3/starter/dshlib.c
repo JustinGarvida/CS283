@@ -72,6 +72,9 @@ int exec_local_cmd_loop()
         }
         cmd_buff._cmd_buffer[strcspn(cmd_buff._cmd_buffer, "\n")] = '\0';
 
+        // Debug: Print the command buffer
+        printf("Debug: Command entered: '%s'\n", cmd_buff._cmd_buffer);
+
         // Check for the exit command
         if (strcmp(cmd_buff._cmd_buffer, EXIT_CMD) == 0)
         {
@@ -82,10 +85,19 @@ int exec_local_cmd_loop()
         // Check for piping
         command_list_t clist;
         rc = build_cmd_list(cmd_buff._cmd_buffer, &clist);
+
+        // Debug: Print the return code from build_cmd_list
+        printf("Debug: build_cmd_list returned: %d\n", rc);
+
         if (rc == OK)
         {
+            // Debug: Print the number of commands parsed
+            printf("Debug: Number of commands parsed: %d\n", clist.num);
+
             // Execute the pipeline
             rc = execute_pipeline(&clist);
+            // Debug: Print the return code from execute_pipeline
+            printf("Debug: execute_pipeline returned: %d\n", rc);
             if (rc != OK)
             {
                 fprintf(stderr, "Error executing pipeline\n");
@@ -113,9 +125,12 @@ int exec_cmd(cmd_buff_t *cmd)
     }
     else if (process_id == 0)
     {
+        // Debug: Print the command being executed
+        printf("Debug: Executing command: %s\n", cmd->argv[0]);
         if (execvp(cmd->argv[0], cmd->argv) == -1)
         {
-            return ERR_EXEC_CMD;
+            perror("execvp failed");
+            exit(ERR_EXEC_CMD);
         }
     }
     else
@@ -131,6 +146,8 @@ int exec_cmd(cmd_buff_t *cmd)
 
 Built_In_Cmds match_command(const char *input)
 {
+    // Debug: Print the command being matched
+    printf("Debug: Matching command: '%s'\n", input);
     if (strcmp(input, "exit") == 0)
         return BI_CMD_EXIT;
     if (strcmp(input, "dragon") == 0)
@@ -277,8 +294,12 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
     clist->num = 0;
     memset(clist->commands, 0, sizeof(clist->commands));
 
+    // Debug: Print the command line being processed
+    printf("Debug: Processing command line: '%s'\n", cmd_line);
+
     if (cmd_line == NULL || strlen(cmd_line) == 0 || strspn(cmd_line, " ") == strlen(cmd_line))
     {
+        printf("Debug: No commands found in command line.\n");
         return WARN_NO_CMDS;
     }
 
@@ -309,6 +330,9 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
             return ERR_MEMORY;
         }
 
+        // Debug: Print the command being added
+        printf("Debug: Adding command: '%s'\n", command);
+
         if (build_cmd_buff(command, &clist->commands[commandCount]))
         {
             return ERR_CMD_OR_ARGS_TOO_BIG;
@@ -335,6 +359,7 @@ int execute_pipeline(command_list_t *clist)
         {
             if (pipe(pipeFileDescriptors) == -1)
             {
+                perror("pipe failed");
                 return ERR_EXEC_CMD;
             }
         }
@@ -355,7 +380,10 @@ int execute_pipeline(command_list_t *clist)
                 close(pipeFileDescriptors[0]);
             }
 
+            // Debug: Print the command being executed in the pipeline
+            printf("Debug: Executing pipeline command: %s\n", clist->commands[currentCommandIndex].argv[0]);
             execvp(clist->commands[currentCommandIndex].argv[0], clist->commands[currentCommandIndex].argv);
+            perror("execvp failed");
             exit(ERR_EXEC_CMD);
         }
         else if (pid > 0)
@@ -373,6 +401,7 @@ int execute_pipeline(command_list_t *clist)
         }
         else
         {
+            perror("fork failed");
             return ERR_EXEC_CMD;
         }
     }
