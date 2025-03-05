@@ -57,80 +57,56 @@ void print_dragon();
 int exec_local_cmd_loop()
 {
     char *cmd_buff = malloc(SH_CMD_MAX);
-    if (!cmd_buff)
-    {
-        return ERR_MEMORY; // Return error if memory allocation fails
+    if (!cmd_buff) {
+        return ERR_MEMORY; 
     }
 
     command_list_t clist;
     int rc;
-
     while (1)
     {
-        // Display the shell prompt
         printf("%s", SH_PROMPT);
 
-        // Read user input
-        if (fgets(cmd_buff, ARG_MAX, stdin) == NULL)
-        {
-            printf("\n"); // Handle EOF (Ctrl+D)
+        if (fgets(cmd_buff, ARG_MAX, stdin) == NULL) {
+            printf("\n");
             break;
         }
-
-        // Remove the newline character from the input
         cmd_buff[strcspn(cmd_buff, "\n")] = '\0';
-
-        // Initialize the command list
         clist.num = 0;
 
-        // Split the input into piped commands
         char *piped_command = strtok(cmd_buff, PIPE_STRING);
         while (piped_command != NULL)
         {
             if (clist.num >= CMD_MAX)
             {
                 free(cmd_buff);
-                return ERR_TOO_MANY_COMMANDS; // Check command limit
+                return ERR_TOO_MANY_COMMANDS;
             }
-
-            // Allocate memory for the command buffer
             rc = alloc_cmd_buff(&clist.commands[clist.num]);
             if (rc != 0)
             {
                 free(cmd_buff);
-                return ERR_MEMORY; // Handle memory allocation failure
+                return ERR_MEMORY;
             }
-
-            // Build the command buffer
             rc = build_cmd_buff(piped_command, &clist.commands[clist.num]);
-            if (rc == WARN_NO_CMDS)
-            {
-                printf(CMD_WARN_NO_CMD); // Warn if no commands are found
+            if (rc == WARN_NO_CMDS) {
+                printf(CMD_WARN_NO_CMD);
                 break;
             }
-
-            clist.num++;                               // Increment the command count
-            piped_command = strtok(NULL, PIPE_STRING); // Get the next piped command
+            clist.num++;
+            piped_command = strtok(NULL, PIPE_STRING);
         }
-
-        // Skip if no valid commands were found
-        if (clist.num == 0)
-        {
+        if (clist.num == 0){
             continue;
         }
 
-        // Check if the number of commands exceeds the limit
         if (clist.num > CMD_MAX)
         {
             printf(CMD_ERR_PIPE_LIMIT, CMD_MAX);
             continue;
         }
-
-        // Execute the commands
         if (clist.num == 1)
         {
-            // Execute a single command (built-in or external)
-            if (exec_built_in_cmd(&clist.commands[0]) == BI_NOT_BI)
             {
                 exec_cmd(&clist.commands[0]);
             }
