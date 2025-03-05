@@ -57,6 +57,39 @@ char *handle_unquoted_string(char *str, cmd_buff_t *cmd_buff)
     return str;
 }
 
+Built_In_Cmds match_command(const char *input)
+{
+    if (strcmp(input, "exit") == 0)
+        return BI_CMD_EXIT;
+    if (strcmp(input, "dragon") == 0)
+        return BI_CMD_DRAGON;
+    if (strcmp(input, "cd") == 0)
+        return BI_CMD_CD;
+    return BI_NOT_BI;
+}
+
+Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd)
+{
+    Built_In_Cmds command_inputted = match_command(cmd->argv[0]);
+    switch (command_inputted)
+    {
+    case BI_CMD_EXIT:
+        return BI_CMD_EXIT;
+
+    case BI_CMD_DRAGON:
+        print_dragon();
+        return BI_EXECUTED;
+    case BI_CMD_CD:
+        if (cmd->argc > 1)
+        {
+            chdir(cmd->argv[1]);
+        }
+        return BI_EXECUTED;
+    default:
+        return BI_NOT_BI;
+    }
+}
+
 // Function to allocate memory for the command buffer
 int alloc_cmd_buff(cmd_buff_t *cmd_buff)
 {
