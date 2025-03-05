@@ -133,7 +133,6 @@ Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd) {
     switch (command_inputted) {
     case BI_CMD_EXIT:
         return BI_CMD_EXIT;
-
     case BI_CMD_DRAGON:
         print_dragon();
         return BI_EXECUTED;
