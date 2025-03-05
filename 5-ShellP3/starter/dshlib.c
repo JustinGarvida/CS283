@@ -60,7 +60,6 @@ int exec_local_cmd_loop()
     if (!cmd_buff) {
         return ERR_MEMORY; 
     }
-
     command_list_t clist;
     int rc;
     while (1)
@@ -83,8 +82,7 @@ int exec_local_cmd_loop()
                 return ERR_TOO_MANY_COMMANDS;
             }
             rc = alloc_cmd_buff(&clist.commands[clist.num]);
-            if (rc != 0)
-            {
+            if (rc != 0) {
                 free(cmd_buff);
                 return ERR_MEMORY;
             }
@@ -124,36 +122,30 @@ char *skip_spaces(char *input_string)
 }
 
 
-char *handle_quotes(char *input_string, int *currentQuote)
+char *handle_quotes(char *input_string, int *current_quote)
 {
     if (*input_string == '"')
     {
-        *currentQuote = 1;
+        *current_quote = 1;
         input_string++;
     }
     return input_string;
 }
 
-// Helper function to extract a single argument
-char *extract_argument(char *str, int *currentQuote)
+char *extract_argument(char *str, int *current_quote)
 {
     char *start = str;
-    while (*str != '\0')
-    {
-        if (*currentQuote)
-        {
-            if (*str == '"')
-            {
-                *currentQuote = 0;
+    while (*str != '\0') {
+        if (*current_quote) {
+            if (*str == '"') {
+                *current_quote = 0;
                 *str = '\0';
                 str++;
                 break;
             }
         }
-        else
-        {
-            if (*str == SPACE_CHAR)
-            {
+        else {
+            if (*str == SPACE_CHAR) {
                 *str = '\0';
                 str++;
                 break;
@@ -169,37 +161,23 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
     int concurrentQuotes = 0;
     cmd_buff->argc = 0;
     strcpy(cmd_buff->_cmd_buffer, cmd_line);
-    char *inputCommandLine = cmd_buff->_cmd_buffer;
+    char *input_string = cmd_buff->_cmd_buffer;
 
-    while (*inputCommandLine != '\0' && cmd_buff->argc < CMD_MAX)
+    while (*input_string != '\0' && cmd_buff->argc < CMD_MAX)
     {
-        // Skip leading spaces
-        inputCommandLine = skip_spaces(inputCommandLine);
-
-        // Handle quotes
-        inputCommandLine = handle_quotes(inputCommandLine, &concurrentQuotes);
-
-        // Break if end of string is reached
-        if (*inputCommandLine == '\0')
-        {
+        input_string = skip_spaces(input_string);
+        input_string = handle_quotes(input_string, &concurrentQuotes);
+        if (*input_string == '\0') {
             break;
         }
-
-        // Extract the argument
-        cmd_buff->argv[cmd_buff->argc] = inputCommandLine;
+        cmd_buff->argv[cmd_buff->argc] = input_string;
         cmd_buff->argc++;
-        inputCommandLine = extract_argument(inputCommandLine, &concurrentQuotes);
+        input_string = extract_argument(input_string, &concurrentQuotes);
     }
-
-    // Null-terminate the argv array
     cmd_buff->argv[cmd_buff->argc] = NULL;
-
-    // Check if no commands were found
-    if (cmd_buff->argc == 0)
-    {
+    if (cmd_buff->argc == 0) {
         return WARN_NO_CMDS;
     }
-
     return OK;
 }
 
