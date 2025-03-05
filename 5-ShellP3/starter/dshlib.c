@@ -112,6 +112,55 @@ int exec_local_cmd_loop()
     return OK;
 }
 
+char *skip_spaces(char *input_string)
+{
+    while (*input_string == SPACE_CHAR)
+    {
+        input_string++;
+    }
+    return input_string;
+}
+
+// Helper function to handle quoted arguments
+char *handle_quotes(char *input_string, int *concurrentQuotes)
+{
+    if (*input_string == '"')
+    {
+        *concurrentQuotes = 1;
+        input_string++;
+    }
+    return input_string;
+}
+
+// Helper function to extract a single argument
+char *extract_argument(char *str, int *concurrentQuotes)
+{
+    char *start = str;
+    while (*str != '\0')
+    {
+        if (*concurrentQuotes)
+        {
+            if (*str == '"')
+            {
+                *concurrentQuotes = 0;
+                *str = '\0';
+                str++;
+                break;
+            }
+        }
+        else
+        {
+            if (*str == SPACE_CHAR)
+            {
+                *str = '\0';
+                str++;
+                break;
+            }
+        }
+        str++;
+    }
+    return str;
+}
 
 int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
 {
@@ -119,73 +168,53 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
     cmd_buff->argc = 0;
     strcpy(cmd_buff->_cmd_buffer, cmd_line);
     char *inputCommandLine = cmd_buff->_cmd_buffer;
+
     while (*inputCommandLine != '\0' && cmd_buff->argc < CMD_MAX)
     {
-        while (*inputCommandLine == SPACE_CHAR)
-        {
-            inputCommandLine++;
-        }
-        if (*inputCommandLine == '"')
-        {
-            concurrentQuotes = 1;
-            inputCommandLine++;
-        }
+        // Skip leading spaces
+        inputCommandLine = skip_spaces(inputCommandLine);
+
+        // Handle quotes
+        inputCommandLine = handle_quotes(inputCommandLine, &concurrentQuotes);
+
+        // Break if end of string is reached
         if (*inputCommandLine == '\0')
         {
             break;
         }
+
+        // Extract the argument
         cmd_buff->argv[cmd_buff->argc] = inputCommandLine;
         cmd_buff->argc++;
-        while (*inputCommandLine != '\0')
-        {
-            if (concurrentQuotes == 1)
-            {
-                if (*inputCommandLine == '"')
-                {
-                    concurrentQuotes = 0;
-                    *inputCommandLine = '\0';
-                    inputCommandLine++;
-                    break;
-                }
-            }
-            else
-            {
-                if (*inputCommandLine == SPACE_CHAR)
-                {
-                    *inputCommandLine = '\0';
-                    inputCommandLine++;
-                    break;
-                }
-            }
-            inputCommandLine++;
-        }
+        inputCommandLine = extract_argument(inputCommandLine, &concurrentQuotes);
     }
+
+    // Null-terminate the argv array
     cmd_buff->argv[cmd_buff->argc] = NULL;
+
+    // Check if no commands were found
     if (cmd_buff->argc == 0)
     {
         return WARN_NO_CMDS;
     }
+
     return OK;
 }
 
 int alloc_cmd_buff(cmd_buff_t *cmd_buff)
 {
-    if (!cmd_buff)
-    {
+    if (!cmd_buff) {
         return ERR_MEMORY;
     }
     cmd_buff->_cmd_buffer = malloc(SH_CMD_MAX);
-    if (!cmd_buff->_cmd_buffer)
-    {
+    if (!cmd_buff->_cmd_buffer) {
         return ERR_MEMORY;
     }
     return OK;
 }
 
-int free_cmd_buff(cmd_buff_t *cmd_buff)
-{
-    if (!cmd_buff || !cmd_buff->_cmd_buffer)
-    {
+int free_cmd_buff(cmd_buff_t *cmd_buff) {
+    if (!cmd_buff || !cmd_buff->_cmd_buffer) {
         return ERR_MEMORY;
     }
     free(cmd_buff->_cmd_buffer);
@@ -237,13 +266,10 @@ int exec_cmd(cmd_buff_t *cmd)
     return OK;
 }
 
-int create_pipes(int pipes[][2], int n)
-{
-    for (int i = 0; i < n; i++)
-    {
-        if (pipe(pipes[i]) == -1)
-        {
-            perror("pipe");
+int create_pipes(int pipes[][2], int n) {
+    for (int i = 0; i < n; i++) {
+        if (pipe(pipes[i]) == -1) {
+
             return ERR_EXEC_CMD;
         }
     }
@@ -253,28 +279,22 @@ int create_pipes(int pipes[][2], int n)
 int spawn_child(int i, int n, int pipes[][2], cmd_buff_t *cmds)
 {
     pid_t pid = fork();
-    if (pid == -1)
-    {
+    if (pid == -1) {
         perror("fork");
         return ERR_EXEC_CMD;
     }
-    if (pid == 0)
-    { // Child process
-        if (i > 0)
-        {
-            dup2(pipes[i - 1][0], STDIN_FILENO); // Redirect input
-        }
-        if (i < n - 1)
-        {
-            dup2(pipes[i][1], STDOUT_FILENO); // Redirect output
-        }
-        for (int j = 0; j < n - 1; j++)
-        {
+    if (pid == 0) { 
+        if (i > 0) {
+            dup2(pipes[i - 1][0], STDIN_FILENO); 
+            }
+        if (i < n - 1) {
+            dup2(pipes[i][1], STDOUT_FILENO);
+            }
+        for (int j = 0; j < n - 1; j++) {
             close(pipes[j][0]);
             close(pipes[j][1]);
         }
         execvp(cmds[i].argv[0], cmds[i].argv);
-        perror("execvp");
         exit(ERR_EXEC_CMD);
     }
     return pid;
@@ -282,13 +302,12 @@ int spawn_child(int i, int n, int pipes[][2], cmd_buff_t *cmds)
 
 int execute_pipeline(command_list_t *clist)
 {
-    int n = clist->num;  // Number of commands
-    int pipes[n - 1][2]; // Pipes for inter-process communication
-    pid_t pids[n];       // Process IDs for all children
+    int n = clist->num;
+    int pipes[n - 1][2];
+    pid_t pids[n]; 
 
     if (n < 1 || n > CMD_MAX)
     {
-        fprintf(stderr, "Invalid number of commands.\n");
         return ERR_EXEC_CMD;
     }
 
