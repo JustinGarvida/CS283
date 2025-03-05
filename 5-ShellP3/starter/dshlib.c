@@ -61,10 +61,10 @@ int exec_local_cmd_loop()
 
         // Execute piped commands
         rc = exec_piped_commands(&cmd_list);
-        // if (rc != OK)
-        // {
-        //     fprintf(stderr, CMD_ERR_EXECUTE);
-        // }
+        if (rc != OK)
+        {
+            // fprintf(stderr, CMD_ERR_EXECUTE);
+        }
     }
     free_cmd_buff(&cmd_buff);
     return OK;
