@@ -56,58 +56,93 @@ void print_dragon();
 
 int exec_local_cmd_loop()
 {
-    char *cmd_buff;
-    command_list_t clist;
-    int rc;
- 
-    cmd_buff = malloc(SH_CMD_MAX);
+    char *cmd_buff = malloc(SH_CMD_MAX);
     if (!cmd_buff)
     {
-        free(cmd_buff);
-        return ERR_MEMORY;
+        return ERR_MEMORY; // Return error if memory allocation fails
     }
+
+    command_list_t clist;
+    int rc;
+
     while (1)
     {
+        // Display the shell prompt
         printf("%s", SH_PROMPT);
+
+        // Read user input
         if (fgets(cmd_buff, ARG_MAX, stdin) == NULL)
         {
-            printf("\n");
+            printf("\n"); // Handle EOF (Ctrl+D)
             break;
         }
+
+        // Remove the newline character from the input
         cmd_buff[strcspn(cmd_buff, "\n")] = '\0';
+
+        // Initialize the command list
         clist.num = 0;
+
+        // Split the input into piped commands
         char *piped_command = strtok(cmd_buff, PIPE_STRING);
         while (piped_command != NULL)
         {
             if (clist.num >= CMD_MAX)
             {
-                return ERR_TOO_MANY_COMMANDS;
+                free(cmd_buff);
+                return ERR_TOO_MANY_COMMANDS; // Check command limit
             }
-            int cmd_buff_rc = alloc_cmd_buff(&clist.commands[clist.num]);
-            if (cmd_buff_rc != 0)
+
+            // Allocate memory for the command buffer
+            rc = alloc_cmd_buff(&clist.commands[clist.num]);
+            if (rc != 0)
             {
-                return ERR_MEMORY;
+                free(cmd_buff);
+                return ERR_MEMORY; // Handle memory allocation failure
             }
+
+            // Build the command buffer
             rc = build_cmd_buff(piped_command, &clist.commands[clist.num]);
             if (rc == WARN_NO_CMDS)
             {
-                printf(CMD_WARN_NO_CMD);
+                printf(CMD_WARN_NO_CMD); // Warn if no commands are found
                 break;
             }
-            clist.num++;
-            piped_command = strtok(NULL, PIPE_STRING);
+
+            clist.num++;                               // Increment the command count
+            piped_command = strtok(NULL, PIPE_STRING); // Get the next piped command
         }
-        if (clist.num == 0) {
-            continue; }
-        if (clist.num > CMD_MAX) {
+
+        // Skip if no valid commands were found
+        if (clist.num == 0)
+        {
+            continue;
+        }
+
+        // Check if the number of commands exceeds the limit
+        if (clist.num > CMD_MAX)
+        {
             printf(CMD_ERR_PIPE_LIMIT, CMD_MAX);
-            continue; }
-        if (clist.num == 1) {
-            if (exec_built_in_cmd(&clist.commands[0]) == BI_NOT_BI) {
-                exec_cmd(&clist.commands[0]); } }
-        else {
-            execute_pipeline(&clist); }
+            continue;
+        }
+
+        // Execute the commands
+        if (clist.num == 1)
+        {
+            // Execute a single command (built-in or external)
+            if (exec_built_in_cmd(&clist.commands[0]) == BI_NOT_BI)
+            {
+                exec_cmd(&clist.commands[0]);
+            }
+        }
+        else
+        {
+            // Execute a pipeline of commands
+            execute_pipeline(&clist);
+        }
     }
+
+    // Free the command buffer
     free(cmd_buff);
     return OK;
 }
@@ -121,28 +156,28 @@ char *skip_spaces(char *input_string)
     return input_string;
 }
 
-// Helper function to handle quoted arguments
-char *handle_quotes(char *input_string, int *concurrentQuotes)
+
+char *handle_quotes(char *input_string, int *currentQuote)
 {
     if (*input_string == '"')
     {
-        *concurrentQuotes = 1;
+        *currentQuote = 1;
         input_string++;
     }
     return input_string;
 }
 
 // Helper function to extract a single argument
-char *extract_argument(char *str, int *concurrentQuotes)
+char *extract_argument(char *str, int *currentQuote)
 {
     char *start = str;
     while (*str != '\0')
     {
-        if (*concurrentQuotes)
+        if (*currentQuote)
         {
             if (*str == '"')
             {
-                *concurrentQuotes = 0;
+                *currentQuote = 0;
                 *str = '\0';
                 str++;
                 break;
