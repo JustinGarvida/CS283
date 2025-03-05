@@ -191,41 +191,55 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
     return (cmd_buff->argc > 0) ? OK : WARN_NO_CMDS;
 }
 
-void execute_pipeline(command_list_t *clist)
+int execute_pipeline(command_list_t *clist)
 {
     int num_commands = clist->num;
     int pipes[num_commands - 1][2];
     pid_t pids[num_commands];
 
+    // Create pipes
     for (int i = 0; i < num_commands - 1; i++)
     {
         if (pipe(pipes[i]) == -1)
         {
             perror("DEBUG: Pipe creation failed");
-            return;
+            return ERR_EXEC_CMD;
         }
     }
 
+    // Create processes for each command
     for (int i = 0; i < num_commands; i++)
     {
         pids[i] = fork();
         if (pids[i] == -1)
         {
             perror("DEBUG: Fork failed in pipeline execution");
-            return;
+            return ERR_EXEC_CMD;
         }
 
-        if (pids[i] == 0)
+        if (pids[i] == 0) // Child process
         {
+            // Redirect input from previous pipe (if not first command)
             if (i > 0)
             {
-                dup2(pipes[i - 1][0], STDIN_FILENO);
-            }
-            if (i < num_commands - 1)
-            {
-                dup2(pipes[i][1], STDOUT_FILENO);
+                if (dup2(pipes[i - 1][0], STDIN_FILENO) == -1)
+                {
+                    perror("DEBUG: dup2 failed for input");
+                    exit(ERR_EXEC_CMD);
+                }
             }
 
+            // Redirect output to next pipe (if not last command)
+            if (i < num_commands - 1)
+            {
+                if (dup2(pipes[i][1], STDOUT_FILENO) == -1)
+                {
+                    perror("DEBUG: dup2 failed for output");
+                    exit(ERR_EXEC_CMD);
+                }
+            }
+
+            // Close all pipes in child process
             for (int j = 0; j < num_commands - 1; j++)
             {
                 close(pipes[j][0]);
@@ -234,6 +248,7 @@ void execute_pipeline(command_list_t *clist)
 
             printf("DEBUG: Executing piped command: %s\n", clist->commands[i].argv[0]);
             fflush(stdout);
+
             if (execvp(clist->commands[i].argv[0], clist->commands[i].argv) == -1)
             {
                 perror("DEBUG: execvp failed in pipeline");
@@ -242,16 +257,29 @@ void execute_pipeline(command_list_t *clist)
         }
     }
 
+    // Parent process closes all pipe ends
     for (int i = 0; i < num_commands - 1; i++)
     {
         close(pipes[i][0]);
         close(pipes[i][1]);
     }
 
+    // Wait for all child processes and check exit status
+    int overall_status = OK;
     for (int i = 0; i < num_commands; i++)
     {
         int status;
-        waitpid(pids[i], &status, 0);
-        printf("DEBUG: Piped process %d completed with status %d\n", pids[i], status);
+        if (waitpid(pids[i], &status, 0) == -1)
+        {
+            perror("DEBUG: waitpid failed");
+            overall_status = ERR_EXEC_CMD;
+        }
+        else if (WIFEXITED(status) && WEXITSTATUS(status) != OK)
+        {
+            printf("DEBUG: Piped process %d exited with status %d\n", pids[i], WEXITSTATUS(status));
+            overall_status = ERR_EXEC_CMD;
+        }
     }
+
+    return overall_status;
 }
