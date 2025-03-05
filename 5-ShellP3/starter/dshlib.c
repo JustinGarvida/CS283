@@ -303,7 +303,7 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
             current_pointer++;
         current_pointer++;
     }
-    cmd_buff->argv[cmd_buff->argc] = NULL;
+    cmd_buff->argv[cmd_buff->argc] = NULL; // Ensure argv is null-terminated
     if (cmd_buff->argc > 0)
     {
         return OK;
