@@ -336,32 +336,32 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
     // Initialize the command list
     memset(clist, 0, sizeof(command_list_t));
 
-    // Tokenize the command line using the pipe delimiter
-    char *command = strtok(cmd_line, PIPE_STRING);
+    char *command = cmd_line;
     int command_count = 0;
 
-    if (command == NULL)
+    while (*command != '\0')
     {
-        return WARN_NO_CMDS;
-    }
-
-    while (command != NULL)
-    {
-        if (command_count >= CMD_MAX)
-        {
-            return ERR_TOO_MANY_COMMANDS;
-        }
-
         // Skip leading spaces
         while (*command == SPACE_CHAR)
         {
             command++;
         }
 
-        // Check if the command is too long
-        if (strlen(command) >= ARG_MAX)
+        if (*command == '\0')
         {
-            return ERR_CMD_OR_ARGS_TOO_BIG;
+            break; // No more commands
+        }
+
+        if (command_count >= CMD_MAX)
+        {
+            return ERR_TOO_MANY_COMMANDS;
+        }
+
+        // Find the next occurrence of SPACE_CHAR to split the arguments
+        char *space_pos = strchr(command, SPACE_CHAR);
+        if (space_pos != NULL)
+        {
+            *space_pos = '\0'; // Null-terminate the current token
         }
 
         // Allocate memory for the command buffer in cmd_buff_t
@@ -371,44 +371,21 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
             return ERR_MEMORY;
         }
 
-        // Tokenize the command into argc and argv
-        char *cmd_buffer = clist->commands[command_count]._cmd_buffer;
-        int argc = 0;
+        // Store the command in the argument list
+        clist->commands[command_count].argv[0] = clist->commands[command_count]._cmd_buffer;
+        clist->commands[command_count].argc = 1;
 
-        // Find the first space character
-        char *space_pos = strchr(cmd_buffer, SPACE_CHAR);
-
+        // Move to the next token
         if (space_pos != NULL)
         {
-            // Split the command into executable and arguments
-            *space_pos = '\0'; // Terminate the executable part
-            clist->commands[command_count].argv[argc++] = cmd_buffer;
-
-            // Move to the first non-space character after the space
-            space_pos++;
-            while (*space_pos == SPACE_CHAR)
-            {
-                space_pos++;
-            }
-
-            // Tokenize the arguments
-            char *token = strtok(space_pos, SPACE_CHAR);
-            while (token != NULL && argc < CMD_ARGV_MAX)
-            {
-                clist->commands[command_count].argv[argc++] = token;
-                token = strtok(NULL, SPACE_CHAR);
-            }
+            command = space_pos + 1; // Move past the space
         }
         else
         {
-            // No space found, the entire command is the executable
-            clist->commands[command_count].argv[argc++] = cmd_buffer;
+            break; // No more spaces, exit loop
         }
 
-        clist->commands[command_count].argc = argc;
-
         command_count++;
-        command = strtok(NULL, PIPE_STRING);
     }
 
     clist->num = command_count;
