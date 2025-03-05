@@ -63,7 +63,7 @@ int exec_local_cmd_loop()
         rc = execute_pipeline(&clist);
         if (rc != OK)
         {
-            fprintf(stderr, CMD_ERR_EXECUTE);
+            // fprintf(stderr, CMD_ERR_EXECUTE);
         }
     }
 
