@@ -71,19 +71,28 @@ int exec_local_cmd_loop()
             break;
         }
         cmd_buff._cmd_buffer[strcspn(cmd_buff._cmd_buffer, "\n")] = '\0';
-        rc = build_cmd_buff(cmd_buff._cmd_buffer, &cmd_buff);
+
+        // Parse the command line into a list of commands
+        command_list_t cmd_list;
+        rc = build_cmd_list(cmd_buff._cmd_buffer, &cmd_list);
         if (rc == WARN_NO_CMDS)
         {
             fprintf(stderr, CMD_WARN_NO_CMD);
             continue;
         }
-        else if (rc == ERR_MEMORY)
+        else if (rc == ERR_TOO_MANY_COMMANDS)
         {
-            fprintf(stderr, "Error: Command buffer memory allocation failed\n");
-            break;
+            fprintf(stderr, CMD_ERR_PIPE_LIMIT, CMD_MAX);
+            continue;
         }
-        Built_In_Cmds cmd_type = match_command(cmd_buff.argv[0]);
+        else if (rc != OK)
+        {
+            fprintf(stderr, "Error: Command parsing failed\n");
+            continue;
+        }
 
+        // Handle built-in commands
+        Built_In_Cmds cmd_type = match_command(cmd_list.commands[0].argv[0]);
         if (cmd_type != BI_NOT_BI)
         {
             Built_In_Cmds exec_result = exec_built_in_cmd(&cmd_buff);
@@ -94,12 +103,15 @@ int exec_local_cmd_loop()
             }
             continue;
         }
-        rc = exec_cmd(&cmd_buff);
+
+        // Execute piped commands
+        rc = execute_pipeline(&cmd_list);
         if (rc != OK)
         {
-            return ERR_EXEC_CMD;
+            // fprintf(stderr, CMD_ERR_EXECUTE);
         }
     }
+
     free_cmd_buff(&cmd_buff);
     return OK;
 }
@@ -268,4 +280,81 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
     {
         return WARN_NO_CMDS;
     }
+}
+
+int execute_pipeline(command_list_t *clist)
+{
+    int num_commands = clist->num;
+    int pipes[num_commands - 1][2]; // Array of pipes
+    pid_t pids[num_commands];       // Array to store process IDs
+
+    // Create all necessary pipes
+    for (int i = 0; i < num_commands - 1; i++)
+    {
+        if (pipe(pipes[i]) == -1)
+        {
+            perror("pipe");
+            return ERR_EXEC_CMD; // Return error code
+        }
+    }
+
+    // Create processes for each command
+    for (int i = 0; i < num_commands; i++)
+    {
+        pids[i] = fork();
+        if (pids[i] == -1)
+        {
+            perror("fork");
+            return ERR_EXEC_CMD; // Return error code
+        }
+
+        if (pids[i] == 0)
+        { // Child process
+            // Set up input pipe for all except first process
+            if (i > 0)
+            {
+                dup2(pipes[i - 1][0], STDIN_FILENO);
+            }
+
+            // Set up output pipe for all except last process
+            if (i < num_commands - 1)
+            {
+                dup2(pipes[i][1], STDOUT_FILENO);
+            }
+
+            // Close all pipe ends in child
+            for (int j = 0; j < num_commands - 1; j++)
+            {
+                close(pipes[j][0]);
+                close(pipes[j][1]);
+            }
+
+            // Execute command using argv from cmd_buff_t
+            if (execvp(clist->commands[i].argv[0], clist->commands[i].argv) == -1)
+            {
+                perror("execvp");
+                exit(ERR_EXEC_CMD); // Exit with error code
+            }
+        }
+    }
+
+    // Parent process: close all pipe ends
+    for (int i = 0; i < num_commands - 1; i++)
+    {
+        close(pipes[i][0]);
+        close(pipes[i][1]);
+    }
+
+    // Wait for all children
+    for (int i = 0; i < num_commands; i++)
+    {
+        int status;
+        waitpid(pids[i], &status, 0);
+        if (WIFEXITED(status) && WEXITSTATUS(status) != OK)
+        {
+            return ERR_EXEC_CMD; // Return error code if any child fails
+        }
+    }
+
+    return OK; // Return success
 }
