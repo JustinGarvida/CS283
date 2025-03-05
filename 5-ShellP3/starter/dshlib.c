@@ -439,3 +439,21 @@ int execute_pipeline(command_list_t *clist)
 
     return status;
 }
+
+int free_cmd_list(command_list_t *cmd_list)
+{
+    if (!cmd_list)
+    {
+        return ERR_MEMORY;
+    }
+
+    for (int i = 0; i < cmd_list->num; i++)
+    {
+        free_cmd_buff(&cmd_list->commands[i]); // Free each command buffer
+    }
+
+    // Reset the command list structure
+    memset(cmd_list, 0, sizeof(command_list_t));
+
+    return OK;
+}
