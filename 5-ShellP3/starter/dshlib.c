@@ -28,6 +28,18 @@ int exec_local_cmd_loop()
         }
         cmd_buff._cmd_buffer[strcspn(cmd_buff._cmd_buffer, "\n")] = '\0';
 
+        // Handle built-in commands directly
+        if (strcmp(cmd_buff._cmd_buffer, EXIT_CMD) == 0)
+        {
+            free_cmd_buff(&cmd_buff);
+            return OK_EXIT;
+        }
+        if (strcmp(cmd_buff._cmd_buffer, "dragon") == 0)
+        {
+            printf("%s", DRAGON_IMAGE);
+            continue;
+        }
+
         // Parse the command line into a list of commands
         command_list_t cmd_list;
         rc = build_cmd_list(cmd_buff._cmd_buffer, &cmd_list);
@@ -38,7 +50,8 @@ int exec_local_cmd_loop()
         }
         else if (rc == ERR_TOO_MANY_COMMANDS)
         {
-            return ERR_TOO_MANY_COMMANDS;
+            fprintf(stderr, CMD_ERR_PIPE_LIMIT, CMD_MAX);
+            continue;
         }
         else if (rc != OK)
         {
