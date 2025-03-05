@@ -52,65 +52,55 @@
  *      fork(), execvp(), exit(), chdir()
  */
 
-void print_dragon();
-
 int exec_local_cmd_loop()
 {
-    char cmd_buff[SH_CMD_MAX]; // Buffer to store user input
-    command_list_t clist;      // Command list to store parsed commands
-    int rc;
+    cmd_buff_t cmd_buff;
+    int rc = alloc_cmd_buff(&cmd_buff);
+    if (rc != OK)
+    {
+        fprintf(stderr, "Error: Failed to allocate memory\n");
+        return ERR_MEMORY;
+    }
 
     while (1)
     {
         printf("%s", SH_PROMPT);
-        if (fgets(cmd_buff, SH_CMD_MAX, stdin) == NULL)
+        if (fgets(cmd_buff._cmd_buffer, SH_CMD_MAX, stdin) == NULL)
         {
             printf("\n");
             break;
         }
-        cmd_buff[strcspn(cmd_buff, "\n")] = '\0'; // Remove trailing newline
-
-        // Parse the command line into a list of commands
-        rc = build_cmd_list(cmd_buff, &clist);
+        cmd_buff._cmd_buffer[strcspn(cmd_buff._cmd_buffer, "\n")] = '\0';
+        rc = build_cmd_buff(cmd_buff._cmd_buffer, &cmd_buff);
         if (rc == WARN_NO_CMDS)
         {
             fprintf(stderr, CMD_WARN_NO_CMD);
             continue;
         }
-        else if (rc == ERR_TOO_MANY_COMMANDS)
+        else if (rc == ERR_MEMORY)
         {
-            fprintf(stderr, CMD_ERR_PIPE_LIMIT, CMD_MAX);
-            continue;
+            fprintf(stderr, "Error: Command buffer memory allocation failed\n");
+            break;
         }
-        else if (rc != OK)
-        {
-            fprintf(stderr, "Error: Failed to parse command\n");
-            continue;
-        }
+        Built_In_Cmds cmd_type = match_command(cmd_buff.argv[0]);
 
-        // Handle built-in commands (only if there's a single command)
-        if (clist.num == 1)
+        if (cmd_type != BI_NOT_BI)
         {
-            Built_In_Cmds cmd_type = match_command(clist.commands[0].argv[0]);
-            if (cmd_type != BI_NOT_BI)
+            Built_In_Cmds exec_result = exec_built_in_cmd(&cmd_buff);
+            if (exec_result == BI_CMD_EXIT)
             {
-                Built_In_Cmds exec_result = exec_built_in_cmd(&clist.commands[0]);
-                if (exec_result == BI_CMD_EXIT)
-                {
-                    return OK_EXIT;
-                }
-                continue;
+                free_cmd_buff(&cmd_buff);
+                return OK_EXIT;
             }
+            continue;
         }
-
-        // Execute the pipeline of commands
-        rc = execute_pipeline(&clist);
+        rc = exec_cmd(&cmd_buff);
         if (rc != OK)
         {
-            // fprintf(stderr, CMD_ERR_EXECUTE);
+            return ERR_EXEC_CMD;
         }
     }
-
+    free_cmd_buff(&cmd_buff);
     return OK;
 }
 
@@ -278,169 +268,4 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
     {
         return WARN_NO_CMDS;
     }
-}
-
-int build_cmd_list(char *cmd_line, command_list_t *clist)
-{
-    if (cmd_line == NULL || clist == NULL)
-    {
-        return WARN_NO_CMDS;
-    }
-
-    // Initialize the command list
-    memset(clist, 0, sizeof(command_list_t));
-
-    // Tokenize the command line by pipes
-    char *command = strtok(cmd_line, PIPE_STRING);
-    int command_count = 0;
-
-    if (command == NULL)
-    {
-        return WARN_NO_CMDS;
-    }
-
-    while (command != NULL)
-    {
-        if (command_count >= CMD_MAX)
-        {
-            return ERR_TOO_MANY_COMMANDS;
-        }
-
-        // Skip leading spaces
-        while (*command == SPACE_CHAR)
-        {
-            command++;
-        }
-
-        // Check if the command is too long
-        if (strlen(command) >= SH_CMD_MAX)
-        {
-            return ERR_CMD_OR_ARGS_TOO_BIG;
-        }
-
-        // Allocate memory for the command buffer
-        int rc = alloc_cmd_buff(&clist->commands[command_count]);
-        if (rc != OK)
-        {
-            return ERR_MEMORY;
-        }
-
-        // Copy the command into the command buffer
-        strncpy(clist->commands[command_count]._cmd_buffer, command, SH_CMD_MAX - 1);
-        clist->commands[command_count]._cmd_buffer[SH_CMD_MAX - 1] = '\0';
-
-        // Parse the command into arguments
-        rc = build_cmd_buff(clist->commands[command_count]._cmd_buffer, &clist->commands[command_count]);
-        if (rc != OK)
-        {
-            return rc;
-        }
-
-        command_count++;
-        command = strtok(NULL, PIPE_STRING);
-    }
-
-    clist->num = command_count;
-    return OK;
-}
-
-int execute_pipeline(command_list_t *clist)
-{
-    if (clist == NULL || clist->num == 0)
-    {
-        fprintf(stderr, "Error: No commands to execute\n");
-        return WARN_NO_CMDS;
-    }
-
-    int num_commands = clist->num;
-    int pipes[num_commands - 1][2]; // Array to hold pipe file descriptors
-    pid_t pids[num_commands];       // Array to store process IDs
-
-    // Debug: Print the number of commands
-    printf("Debug: Number of commands in pipeline: %d\n", num_commands);
-
-    // Create pipes for the pipeline
-    for (int i = 0; i < num_commands - 1; i++)
-    {
-        if (pipe(pipes[i]) == -1)
-        {
-            perror("pipe");
-            return ERR_EXEC_CMD;
-        }
-        // Debug: Print pipe creation
-        printf("Debug: Created pipe %d: read=%d, write=%d\n", i, pipes[i][0], pipes[i][1]);
-    }
-
-    // Fork processes for each command in the pipeline
-    for (int i = 0; i < num_commands; i++)
-    {
-        pids[i] = fork();
-        if (pids[i] == -1)
-        {
-            perror("fork");
-            return ERR_EXEC_CMD;
-        }
-
-        if (pids[i] == 0) // Child process
-        {
-            // Debug: Print child process info
-            printf("Debug: Child process %d for command: %s\n", i, clist->commands[i].argv[0]);
-
-            // Redirect input from the previous pipe (if not the first command)
-            if (i > 0)
-            {
-                printf("Debug: Redirecting input from pipe %d (read=%d)\n", i - 1, pipes[i - 1][0]);
-                dup2(pipes[i - 1][0], STDIN_FILENO);
-            }
-
-            // Redirect output to the next pipe (if not the last command)
-            if (i < num_commands - 1)
-            {
-                printf("Debug: Redirecting output to pipe %d (write=%d)\n", i, pipes[i][1]);
-                dup2(pipes[i][1], STDOUT_FILENO);
-            }
-
-            // Close all pipe file descriptors in the child process
-            for (int j = 0; j < num_commands - 1; j++)
-            {
-                close(pipes[j][0]);
-                close(pipes[j][1]);
-            }
-
-            // Debug: Print command being executed
-            printf("Debug: Executing command: %s\n", clist->commands[i].argv[0]);
-            for (int k = 0; clist->commands[i].argv[k] != NULL; k++)
-            {
-                printf("Debug: Arg %d: %s\n", k, clist->commands[i].argv[k]);
-            }
-
-            // Execute the command
-            if (execvp(clist->commands[i].argv[0], clist->commands[i].argv) == -1)
-            {
-                perror("execvp");
-                exit(ERR_EXEC_CMD);
-            }
-        }
-    }
-
-    // Parent process: close all pipe file descriptors
-    for (int i = 0; i < num_commands - 1; i++)
-    {
-        close(pipes[i][0]);
-        close(pipes[i][1]);
-    }
-
-    // Wait for all child processes to finish
-    for (int i = 0; i < num_commands; i++)
-    {
-        int status;
-        waitpid(pids[i], &status, 0);
-        if (WIFEXITED(status) && WEXITSTATUS(status) != OK)
-        {
-            fprintf(stderr, "Error: Child process %d exited with status %d\n", i, WEXITSTATUS(status));
-            return ERR_EXEC_CMD;
-        }
-    }
-
-    return OK;
 }
