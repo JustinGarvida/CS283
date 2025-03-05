@@ -367,3 +367,87 @@ int exec_local_cmd_loop()
     free_cmd_buff(&cmd_buff);
     return OK;
 }
+
+int build_cmd_list(char *cmd_line, command_list_t *clist)
+{
+    if (cmd_line == NULL || clist == NULL)
+    {
+        return WARN_NO_CMDS;
+    }
+    memset(clist, 0, sizeof(command_list_t));
+    char *command = strtok(cmd_line, PIPE_STRING);
+    int command_count = 0;
+
+    if (command == NULL)
+    {
+        return WARN_NO_CMDS;
+    }
+    while (command != NULL)
+    {
+        if (command_count >= CMD_MAX)
+        {
+            return ERR_TOO_MANY_COMMANDS;
+        }
+        while (*command == SPACE_CHAR)
+        {
+            command++;
+        }
+        if (strlen(command) >= ARG_MAX)
+        {
+            return ERR_CMD_OR_ARGS_TOO_BIG;
+        }
+
+        char *space_pos = strchr(command, SPACE_CHAR);
+        clist->commands[command_count]._cmd_buffer = malloc(ARG_MAX + EXE_MAX);
+        if (!clist->commands[command_count]._cmd_buffer)
+        {
+            return ERR_MEMORY;
+        }
+
+        if (space_pos != NULL)
+        {
+            size_t exe_len = space_pos - command;
+            if (exe_len >= EXE_MAX)
+            {
+                return ERR_CMD_OR_ARGS_TOO_BIG;
+            }
+
+            clist->commands[command_count].argv[0] = clist->commands[command_count]._cmd_buffer;
+            strncpy(clist->commands[command_count]._cmd_buffer, command, exe_len);
+            clist->commands[command_count]._cmd_buffer[exe_len] = '\0';
+            clist->commands[command_count].argc = 1;
+
+            space_pos++;
+            while (*space_pos == SPACE_CHAR)
+            {
+                space_pos++;
+            }
+
+            if (*space_pos != '\0')
+            {
+                clist->commands[command_count].argv[1] = clist->commands[command_count]._cmd_buffer + exe_len + 1;
+                strncpy(clist->commands[command_count]._cmd_buffer + exe_len + 1, space_pos, ARG_MAX);
+                clist->commands[command_count]._cmd_buffer[exe_len + 1 + ARG_MAX - 1] = '\0';
+                clist->commands[command_count].argc++;
+            }
+        }
+        else
+        {
+            if (strlen(command) >= EXE_MAX)
+            {
+                return ERR_CMD_OR_ARGS_TOO_BIG;
+            }
+
+            clist->commands[command_count].argv[0] = clist->commands[command_count]._cmd_buffer;
+            strncpy(clist->commands[command_count]._cmd_buffer, command, EXE_MAX);
+            clist->commands[command_count]._cmd_buffer[EXE_MAX - 1] = '\0';
+            clist->commands[command_count].argc = 1;
+        }
+
+        command_count++;
+        command = strtok(NULL, PIPE_STRING);
+    }
+
+    clist->num = command_count;
+    return OK;
+}
