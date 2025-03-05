@@ -52,6 +52,8 @@
  *      fork(), execvp(), exit(), chdir()
  */
 
+void print_dragon();
+
 int exec_local_cmd_loop()
 {
     char cmd_buff[SH_CMD_MAX]; // Buffer to store user input
