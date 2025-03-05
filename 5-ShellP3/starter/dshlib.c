@@ -54,74 +54,6 @@
 
 void print_dragon();
 
-int exec_local_cmd_loop()
-{
-    char cmd_buffer[SH_CMD_MAX];
-    command_list_t cmd_list;
-
-    while (1)
-    {
-        printf("%s", SH_PROMPT);
-        if (fgets(cmd_buffer, SH_CMD_MAX, stdin) == NULL)
-        {
-            printf("\n");
-            break;
-        }
-
-        // Remove trailing newline character
-        cmd_buffer[strcspn(cmd_buffer, "\n")] = '\0';
-
-        // Ignore empty input
-        if (cmd_buffer[0] == '\0')
-        {
-            continue;
-        }
-
-        // Build command list (tokenizes commands based on '|')
-        int rc = build_cmd_list(cmd_buffer, &cmd_list);
-        if (rc == WARN_NO_CMDS)
-        {
-            fprintf(stderr, CMD_WARN_NO_CMD);
-            continue;
-        }
-        else if (rc == ERR_TOO_MANY_COMMANDS)
-        {
-            fprintf(stderr, CMD_ERR_PIPE_LIMIT, CMD_MAX);
-            continue;
-        }
-        else if (rc == ERR_MEMORY)
-        {
-            fprintf(stderr, "Error: Command list memory allocation failed\n");
-            break;
-        }
-
-        // If the first command is a built-in, execute it separately
-        Built_In_Cmds cmd_type = match_command(cmd_list.commands[0].argv[0]);
-        if (cmd_type != BI_NOT_BI)
-        {
-            Built_In_Cmds exec_result = exec_built_in_cmd(&cmd_list.commands[0]);
-            if (exec_result == BI_CMD_EXIT)
-            {
-                free_cmd_list(&cmd_list);
-                return OK_EXIT;
-            }
-            free_cmd_list(&cmd_list);
-            continue;
-        }
-
-        // Execute pipeline (handles multiple commands with pipes)
-        rc = execute_pipeline(&cmd_list);
-        if (rc != OK)
-        {
-            fprintf(stderr, "Error: Failed to execute piped commands\n");
-        }
-
-        free_cmd_list(&cmd_list);
-    }
-
-    return OK;
-}
-
 int exec_cmd(cmd_buff_t *cmd)
 {
     int process_id = fork();
@@ -454,6 +386,74 @@ int free_cmd_list(command_list_t *cmd_list)
 
     // Reset the command list structure
     memset(cmd_list, 0, sizeof(command_list_t));
+
+    return OK;
+}
+
+int exec_local_cmd_loop()
+{
+    char cmd_buffer[SH_CMD_MAX];
+    command_list_t cmd_list;
+
+    while (1)
+    {
+        printf("%s", SH_PROMPT);
+        if (fgets(cmd_buffer, SH_CMD_MAX, stdin) == NULL)
+        {
+            printf("\n");
+            break;
+        }
+
+        // Remove trailing newline character
+        cmd_buffer[strcspn(cmd_buffer, "\n")] = '\0';
+
+        // Ignore empty input
+        if (cmd_buffer[0] == '\0')
+        {
+            continue;
+        }
+
+        // Build command list (tokenizes commands based on '|')
+        int rc = build_cmd_list(cmd_buffer, &cmd_list);
+        if (rc == WARN_NO_CMDS)
+        {
+            fprintf(stderr, CMD_WARN_NO_CMD);
+            continue;
+        }
+        else if (rc == ERR_TOO_MANY_COMMANDS)
+        {
+            fprintf(stderr, CMD_ERR_PIPE_LIMIT, CMD_MAX);
+            continue;
+        }
+        else if (rc == ERR_MEMORY)
+        {
+            fprintf(stderr, "Error: Command list memory allocation failed\n");
+            break;
+        }
+
+        // If the first command is a built-in, execute it separately
+        Built_In_Cmds cmd_type = match_command(cmd_list.commands[0].argv[0]);
+        if (cmd_type != BI_NOT_BI)
+        {
+            Built_In_Cmds exec_result = exec_built_in_cmd(&cmd_list.commands[0]);
+            if (exec_result == BI_CMD_EXIT)
+            {
+                free_cmd_list(&cmd_list);
+                return OK_EXIT;
+            }
+            free_cmd_list(&cmd_list);
+            continue;
+        }
+
+        // Execute pipeline (handles multiple commands with pipes)
+        rc = execute_pipeline(&cmd_list);
+        if (rc != OK)
+        {
+            fprintf(stderr, "Error: Failed to execute piped commands\n");
+        }
+
+        free_cmd_list(&cmd_list);
+    }
 
     return OK;
 }
