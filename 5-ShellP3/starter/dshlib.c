@@ -96,29 +96,20 @@ int exec_local_cmd_loop()
             clist.num++;
             piped_command = strtok(NULL, PIPE_STRING);
         }
-        if (clist.num == 0){
+        if (clist.num == 0) {
             continue;
         }
-
-        if (clist.num > CMD_MAX)
-        {
+        else if (clist.num > CMD_MAX) {
             printf(CMD_ERR_PIPE_LIMIT, CMD_MAX);
             continue;
         }
-        if (clist.num == 1)
-        {
-            {
-                exec_cmd(&clist.commands[0]);
-            }
+        else if (clist.num == 1) {
+            exec_cmd(&clist.commands[0]);
         }
-        else
-        {
-            // Execute a pipeline of commands
+        else {
             execute_pipeline(&clist);
         }
     }
-
-    // Free the command buffer
     free(cmd_buff);
     return OK;
 }
