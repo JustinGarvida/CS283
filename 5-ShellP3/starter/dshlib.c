@@ -54,53 +54,109 @@
 
 int exec_local_cmd_loop()
 {
-    cmd_buff_t cmd_buff;
-    int rc = alloc_cmd_buff(&cmd_buff);
-    if (rc != OK)
+    char *cmd_buff;
+    command_list_t clist;
+    int rc = 0;
+
+    // Allocate memory for the command buffer
+    cmd_buff = malloc(SH_CMD_MAX);
+    if (!cmd_buff)
     {
-        fprintf(stderr, "Error: Failed to allocate memory\n");
         return ERR_MEMORY;
     }
 
     while (1)
     {
         printf("%s", SH_PROMPT);
-        if (fgets(cmd_buff._cmd_buffer, SH_CMD_MAX, stdin) == NULL)
+
+        // Read user input
+        if (fgets(cmd_buff, SH_CMD_MAX, stdin) == NULL)
         {
             printf("\n");
             break;
         }
-        cmd_buff._cmd_buffer[strcspn(cmd_buff._cmd_buffer, "\n")] = '\0';
-        rc = build_cmd_buff(cmd_buff._cmd_buffer, &cmd_buff);
-        if (rc == WARN_NO_CMDS)
-        {
-            fprintf(stderr, CMD_WARN_NO_CMD);
-            continue;
-        }
-        else if (rc == ERR_MEMORY)
-        {
-            fprintf(stderr, "Error: Command buffer memory allocation failed\n");
-            break;
-        }
-        Built_In_Cmds cmd_type = match_command(cmd_buff.argv[0]);
 
-        if (cmd_type != BI_NOT_BI)
+        // Remove newline character from input
+        cmd_buff[strcspn(cmd_buff, "\n")] = '\0';
+        clist.num = 0;
+
+        // Tokenize the input based on pipes
+        char *eachPipedCommand = strtok(cmd_buff, PIPE_STRING);
+        while (eachPipedCommand != NULL)
         {
-            Built_In_Cmds exec_result = exec_built_in_cmd(&cmd_buff);
-            if (exec_result == BI_CMD_EXIT)
+            if (clist.num >= CMD_MAX)
             {
-                free_cmd_buff(&cmd_buff);
-                return OK_EXIT;
+                fprintf(stderr, CMD_ERR_PIPE_LIMIT, CMD_MAX);
+                continue;
             }
+
+            // Allocate buffer for command storage
+            rc = alloc_cmd_buff(&clist.commands[clist.num]);
+            if (rc != OK)
+            {
+                fprintf(stderr, "Error: Command buffer allocation failed\n");
+                return ERR_MEMORY;
+            }
+
+            // Parse and build command buffer
+            rc = build_cmd_buff(eachPipedCommand, &clist.commands[clist.num]);
+            if (rc == WARN_NO_CMDS)
+            {
+                fprintf(stderr, CMD_WARN_NO_CMD);
+                break;
+            }
+
+            clist.num++;
+            eachPipedCommand = strtok(NULL, PIPE_STRING);
+        }
+
+        // If no commands were processed, continue loop
+        if (clist.num == 0)
+        {
             continue;
         }
-        rc = exec_cmd(&cmd_buff);
-        if (rc != OK)
+
+        // If only one command was provided
+        if (clist.num == 1)
         {
-            return ERR_EXEC_CMD;
+            Built_In_Cmds cmd_type = match_command(clist.commands[0].argv[0]);
+
+            // Handle built-in commands (e.g., exit, cd)
+            if (cmd_type != BI_NOT_BI)
+            {
+                if (cmd_type == BI_CMD_EXIT)
+                {
+                    free(cmd_buff);
+                    return OK_EXIT;
+                }
+                else if (cmd_type == BI_CMD_CD)
+                {
+                    if (clist.commands[0].argc > 1)
+                    {
+                        if (chdir(clist.commands[0].argv[1]) != 0)
+                        {
+                            perror("cd failed");
+                        }
+                    }
+                    continue;
+                }
+                exec_built_in_cmd(&clist.commands[0]);
+            }
+            else
+            {
+                // Execute external command
+                exec_cmd(&clist.commands[0]);
+            }
+        }
+        else
+        {
+            // Handle multiple commands in a pipeline
+            execute_pipeline(&clist);
         }
     }
-    free_cmd_buff(&cmd_buff);
+
+    // Free allocated memory before exiting
+    free(cmd_buff);
     return OK;
 }
 
@@ -316,14 +372,37 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
         }
 
         // Tokenize the command into argc and argv
-        char *token = strtok(clist->commands[command_count]._cmd_buffer, SPACE_CHAR);
+        char *cmd_buffer = clist->commands[command_count]._cmd_buffer;
         int argc = 0;
 
-        while (token != NULL && argc < CMD_ARGV_MAX)
+        // Find the first space character
+        char *space_pos = strchr(cmd_buffer, SPACE_CHAR);
+
+        if (space_pos != NULL)
         {
-            clist->commands[command_count].argv[argc] = token;
-            argc++;
-            token = strtok(NULL, SPACE_CHAR);
+            // Split the command into executable and arguments
+            *space_pos = '\0'; // Terminate the executable part
+            clist->commands[command_count].argv[argc++] = cmd_buffer;
+
+            // Move to the first non-space character after the space
+            space_pos++;
+            while (*space_pos == SPACE_CHAR)
+            {
+                space_pos++;
+            }
+
+            // Tokenize the arguments
+            char *token = strtok(space_pos, SPACE_CHAR);
+            while (token != NULL && argc < CMD_ARGV_MAX)
+            {
+                clist->commands[command_count].argv[argc++] = token;
+                token = strtok(NULL, SPACE_CHAR);
+            }
+        }
+        else
+        {
+            // No space found, the entire command is the executable
+            clist->commands[command_count].argv[argc++] = cmd_buffer;
         }
 
         clist->commands[command_count].argc = argc;
