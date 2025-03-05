@@ -348,12 +348,16 @@ int execute_pipeline(command_list_t *clist)
 {
     if (clist == NULL || clist->num == 0)
     {
+        fprintf(stderr, "Error: No commands to execute\n");
         return WARN_NO_CMDS;
     }
 
     int num_commands = clist->num;
     int pipes[num_commands - 1][2]; // Array to hold pipe file descriptors
     pid_t pids[num_commands];       // Array to store process IDs
+
+    // Debug: Print the number of commands
+    printf("Debug: Number of commands in pipeline: %d\n", num_commands);
 
     // Create pipes for the pipeline
     for (int i = 0; i < num_commands - 1; i++)
@@ -363,6 +367,8 @@ int execute_pipeline(command_list_t *clist)
             perror("pipe");
             return ERR_EXEC_CMD;
         }
+        // Debug: Print pipe creation
+        printf("Debug: Created pipe %d: read=%d, write=%d\n", i, pipes[i][0], pipes[i][1]);
     }
 
     // Fork processes for each command in the pipeline
@@ -377,15 +383,20 @@ int execute_pipeline(command_list_t *clist)
 
         if (pids[i] == 0) // Child process
         {
+            // Debug: Print child process info
+            printf("Debug: Child process %d for command: %s\n", i, clist->commands[i].argv[0]);
+
             // Redirect input from the previous pipe (if not the first command)
             if (i > 0)
             {
+                printf("Debug: Redirecting input from pipe %d (read=%d)\n", i - 1, pipes[i - 1][0]);
                 dup2(pipes[i - 1][0], STDIN_FILENO);
             }
 
             // Redirect output to the next pipe (if not the last command)
             if (i < num_commands - 1)
             {
+                printf("Debug: Redirecting output to pipe %d (write=%d)\n", i, pipes[i][1]);
                 dup2(pipes[i][1], STDOUT_FILENO);
             }
 
@@ -394,6 +405,13 @@ int execute_pipeline(command_list_t *clist)
             {
                 close(pipes[j][0]);
                 close(pipes[j][1]);
+            }
+
+            // Debug: Print command being executed
+            printf("Debug: Executing command: %s\n", clist->commands[i].argv[0]);
+            for (int k = 0; clist->commands[i].argv[k] != NULL; k++)
+            {
+                printf("Debug: Arg %d: %s\n", k, clist->commands[i].argv[k]);
             }
 
             // Execute the command
@@ -419,6 +437,7 @@ int execute_pipeline(command_list_t *clist)
         waitpid(pids[i], &status, 0);
         if (WIFEXITED(status) && WEXITSTATUS(status) != OK)
         {
+            fprintf(stderr, "Error: Child process %d exited with status %d\n", i, WEXITSTATUS(status));
             return ERR_EXEC_CMD;
         }
     }
