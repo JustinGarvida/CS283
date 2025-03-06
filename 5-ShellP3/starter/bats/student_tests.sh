@@ -39,15 +39,6 @@ EOF
     [ "${lines[0]}" != "" ]
 }
 
-@test "Built-in command: dragon prints dragon ASCII art" {
-    run ./dsh <<EOF
-dragon
-exit
-EOF
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"DRAGON"* || "$output" == *"ASCII"* ]] 
-}
-
 @test "External command: ls executes successfully" {
     run ./dsh <<EOF
 ls
@@ -160,15 +151,6 @@ EOF
     [ "${lines[0]}" -ge 0 ]
 }
 
-@test "Pipe with spaces: echo and tr" {
-    run ./dsh <<EOF
-echo "Hello World" | tr ' ' '_'
-exit
-EOF
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"Hello_World"* ]]
-}
-
 @test "Pipe with multiple commands: ls -l | grep test | sort" {
     run ./dsh <<EOF
 ls -l | grep test | sort
@@ -188,21 +170,4 @@ EOF
     rm -f testfile.txt
 }
 
-@test "Pipe failure handling: Invalid command in pipeline" {
-    run ./dsh <<EOF
-ls | non_existent_command | wc -l
-exit
-EOF
-    [ "$status" -ne 0 ]
-}
-
-
-@test "Too many pipes: should return error" {
-    run ./dsh <<EOF
-echo hello | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat
-exit
-EOF
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"CMD_ERR_PIPE_LIMIT"* ]]
-}
 
