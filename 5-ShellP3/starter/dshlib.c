@@ -286,18 +286,15 @@ int execute_pipeline(command_list_t *clist)
     int pipes[n - 1][2];
     pid_t pids[n]; 
 
-    if (n < 1 || n > CMD_MAX)
-    {
+    if (n < 1 || n > CMD_MAX) {
         return ERR_EXEC_CMD;
     }
 
-    if (create_pipes(pipes, n - 1) != OK)
-    {
+    if (create_pipes(pipes, n - 1) != OK) {
         return ERR_EXEC_CMD;
     }
 
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
         pids[i] = spawn_child(i, n, pipes, clist->commands);
         if (pids[i] == ERR_EXEC_CMD)
         {
@@ -305,16 +302,12 @@ int execute_pipeline(command_list_t *clist)
         }
     }
 
-    // Close all pipe ends in the parent
-    for (int i = 0; i < n - 1; i++)
-    {
+    for (int i = 0; i < n - 1; i++) {
         close(pipes[i][0]);
         close(pipes[i][1]);
     }
 
-    // Wait for all children to finish
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
         waitpid(pids[i], NULL, 0);
     }
 
